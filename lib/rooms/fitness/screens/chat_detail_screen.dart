@@ -87,15 +87,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   void _startVoiceRecording() async {
     try {
-      // Solicitar permisos primero
-      final status = await Permission.microphone.request();
-      if (status != PermissionStatus.granted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Se requiere permiso de micrófono para grabar audio')),
-        );
-        return;
-      }
-
       // Crear directorio temporal para almacenar la grabación
       final tempDir = await getTemporaryDirectory();
       _recordingPath = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
