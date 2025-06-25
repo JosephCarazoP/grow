@@ -31,6 +31,7 @@ class ChatDetailScreen extends StatefulWidget {
   @override
   State<ChatDetailScreen> createState() => _ChatDetailScreenState();
 }
+
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _messageController = TextEditingController();
@@ -77,19 +78,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _initRecorder() {
-    _recorderController = RecorderController()
-      ..androidEncoder = AndroidEncoder.aac
-      ..androidOutputFormat = AndroidOutputFormat.mpeg4
-      ..iosEncoder = IosEncoder.kAudioFormatMPEG4AAC
-      ..sampleRate = 44100
-      ..bitRate = 128000;
+    _recorderController =
+        RecorderController()
+          ..androidEncoder = AndroidEncoder.aac
+          ..androidOutputFormat = AndroidOutputFormat.mpeg4
+          ..iosEncoder = IosEncoder.kAudioFormatMPEG4AAC
+          ..sampleRate = 44100
+          ..bitRate = 128000;
   }
 
   void _startVoiceRecording() async {
     try {
       // Crear directorio temporal para almacenar la grabación
       final tempDir = await getTemporaryDirectory();
-      _recordingPath = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      _recordingPath =
+          '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       // Iniciar grabación
       await _recorderController.record(path: _recordingPath);
@@ -107,9 +110,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       });
     } catch (e) {
       print('Error al iniciar grabación: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al iniciar grabación: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al iniciar grabación: $e')));
     }
   }
 
@@ -143,7 +146,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-
   Future<void> _uploadAndSendAudio(String filePath) async {
     try {
       setState(() {
@@ -152,9 +154,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       // Generar nombre único para el archivo
       final String fileName = '${uuid.v4()}.m4a';
-      final Reference storageRef = _storage
-          .ref()
-          .child('chats/${widget.chatId}/audio/$fileName');
+      final Reference storageRef = _storage.ref().child(
+        'chats/${widget.chatId}/audio/$fileName',
+      );
 
       // Subir archivo a Firebase Storage
       final File audioFile = File(filePath);
@@ -170,9 +172,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       List<double> waveformData = [];
       try {
         // Intentar obtener los datos de la forma de onda del controlador
-        waveformData = _recorderController.waveformData
-            .map((amplitude) => amplitude / 100)
-            .toList();
+        waveformData =
+            _recorderController.waveData
+                ?.map((amplitude) => amplitude / 100)
+                .toList() ??
+            [];
 
         // Si no hay suficientes datos, generar algunos predeterminados
         if (waveformData.isEmpty || waveformData.length < 10) {
@@ -185,12 +189,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       // Enviar mensaje con audio
       await _sendMediaMessage(
-          downloadUrl,
-          'audio',
-          additionalData: {
-            'duration': audioLength, // Duración en segundos
-            'waveformData': waveformData,
-          }
+        downloadUrl,
+        'audio',
+        additionalData: {
+          'duration': audioLength, // Duración en segundos
+          'waveformData': waveformData,
+        },
       );
 
       setState(() {
@@ -198,9 +202,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       });
     } catch (e) {
       print('Error al enviar audio: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al enviar audio: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al enviar audio: $e')));
       setState(() {
         isLoading = false;
       });
@@ -240,20 +244,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundImage: widget.otherUserPhoto.isNotEmpty
-                  ? CachedNetworkImageProvider(widget.otherUserPhoto)
-                  : null,
+              backgroundImage:
+                  widget.otherUserPhoto.isNotEmpty
+                      ? CachedNetworkImageProvider(widget.otherUserPhoto)
+                      : null,
               backgroundColor: _mediumGrey,
-              child: widget.otherUserPhoto.isEmpty
-                  ? Text(
-                widget.otherUserName.substring(0, 1).toUpperCase(),
-                style: TextStyle(
-                  color: _pureWhite,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              )
-                  : null,
+              child:
+                  widget.otherUserPhoto.isEmpty
+                      ? Text(
+                        widget.otherUserName.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          color: _pureWhite,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      )
+                      : null,
             ),
             const SizedBox(width: 12),
             Column(
@@ -281,7 +287,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.call, color: _pureWhite.withOpacity(0.8), size: 22),
+            icon: Icon(
+              Icons.call,
+              color: _pureWhite.withOpacity(0.8),
+              size: 22,
+            ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Función no implementada')),
@@ -289,7 +299,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             },
           ),
           IconButton(
-            icon: Icon(Icons.more_vert, color: _pureWhite.withOpacity(0.8), size: 22),
+            icon: Icon(
+              Icons.more_vert,
+              color: _pureWhite.withOpacity(0.8),
+              size: 22,
+            ),
             onPressed: () {
               _showChatOptions();
             },
@@ -303,24 +317,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('chats')
-                  .doc(widget.chatId)
-                  .collection('messages')
-                  .orderBy('timestamp', descending: true)
-                  .limit(100)
-                  .snapshots(),
+              stream:
+                  _firestore
+                      .collection('chats')
+                      .doc(widget.chatId)
+                      .collection('messages')
+                      .orderBy('timestamp', descending: true)
+                      .limit(100)
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(
-                      child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: _pureWhite.withOpacity(0.6),
-                          )
-                      )
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.5,
+                        color: _pureWhite.withOpacity(0.6),
+                      ),
+                    ),
                   );
                 }
 
@@ -362,10 +377,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 return ListView.builder(
                   reverse: true,
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 16,
+                  ),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final message = messages[index].data() as Map<String, dynamic>;
+                    final message =
+                        messages[index].data() as Map<String, dynamic>;
                     final messageId = messages[index].id;
                     final isMe = message['senderId'] == widget.currentUserId;
                     final timestamp = message['timestamp'] as Timestamp?;
@@ -376,9 +395,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     if (index == messages.length - 1) {
                       showDateHeader = true;
                     } else {
-                      final nextMessage = messages[index + 1].data() as Map<String, dynamic>;
-                      final nextTimestamp = nextMessage['timestamp'] as Timestamp?;
-                      final nextDateTime = nextTimestamp?.toDate() ?? DateTime.now();
+                      final nextMessage =
+                          messages[index + 1].data() as Map<String, dynamic>;
+                      final nextTimestamp =
+                          nextMessage['timestamp'] as Timestamp?;
+                      final nextDateTime =
+                          nextTimestamp?.toDate() ?? DateTime.now();
 
                       if (dateTime.day != nextDateTime.day ||
                           dateTime.month != nextDateTime.month ||
@@ -408,9 +430,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final now = DateTime.now();
     String headerText;
 
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
       headerText = 'Hoy';
-    } else if (date.year == now.year && date.month == now.month && date.day == now.day - 1) {
+    } else if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day - 1) {
       headerText = 'Ayer';
     } else {
       headerText = DateFormat('d MMM, yyyy').format(date);
@@ -424,10 +450,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           decoration: BoxDecoration(
             color: _pureWhite.withOpacity(0.04),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _pureWhite.withOpacity(0.07),
-              width: 0.5,
-            ),
+            border: Border.all(color: _pureWhite.withOpacity(0.07), width: 0.5),
           ),
           child: Text(
             headerText,
@@ -446,7 +469,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _updateChatParticipantInfo() async {
     try {
       // Primero obtener los datos actuales del chat
-      final chatDoc = await _firestore.collection('chats').doc(widget.chatId).get();
+      final chatDoc =
+          await _firestore.collection('chats').doc(widget.chatId).get();
 
       if (!chatDoc.exists) return;
 
@@ -460,12 +484,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (!participantInfo.containsKey(widget.currentUserId) ||
           participantInfo[widget.currentUserId]['name'] == null ||
           participantInfo[widget.currentUserId]['photo'] == null) {
-
         // Obtener información actual del usuario
-        final userDoc = await _firestore.collection('users').doc(widget.currentUserId).get();
+        final userDoc =
+            await _firestore
+                .collection('users')
+                .doc(widget.currentUserId)
+                .get();
         if (userDoc.exists) {
           final userData = userDoc.data() ?? {};
-          final userName = userData['displayName'] ?? userData['username'] ?? 'Usuario';
+          final userName =
+              userData['displayName'] ?? userData['username'] ?? 'Usuario';
           final userPhoto = userData['photoURL'] ?? userData['photoUrl'] ?? '';
 
           // Actualizar el mapa de participantInfo
@@ -482,12 +510,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (!participantInfo.containsKey(widget.otherUserId) ||
           participantInfo[widget.otherUserId]['name'] == null ||
           participantInfo[widget.otherUserId]['photo'] == null) {
-
         // Obtener información del otro usuario
-        final userDoc = await _firestore.collection('users').doc(widget.otherUserId).get();
+        final userDoc =
+            await _firestore.collection('users').doc(widget.otherUserId).get();
         if (userDoc.exists) {
           final userData = userDoc.data() ?? {};
-          final userName = userData['displayName'] ?? userData['username'] ?? 'Usuario';
+          final userName =
+              userData['displayName'] ?? userData['username'] ?? 'Usuario';
           final userPhoto = userData['photoURL'] ?? userData['photoUrl'] ?? '';
 
           // Actualizar el mapa de participantInfo
@@ -505,14 +534,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         await _firestore.collection('chats').doc(widget.chatId).update({
           'participantInfo': participantInfo,
         });
-        print('Información de participantes actualizada en el chat ${widget.chatId}');
+        print(
+          'Información de participantes actualizada en el chat ${widget.chatId}',
+        );
       }
     } catch (e) {
       print('Error al actualizar información de participantes: $e');
     }
   }
 
-  Widget _buildMessage(Map<String, dynamic> message, String messageId, bool isMe, DateTime timestamp) {
+  Widget _buildMessage(
+    Map<String, dynamic> message,
+    String messageId,
+    bool isMe,
+    DateTime timestamp,
+  ) {
     final String messageType = message['messageType'] ?? 'text';
     final time = DateFormat('HH:mm').format(timestamp);
     final isRead = message['read'] ?? false;
@@ -520,7 +556,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
@@ -530,29 +567,34 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               margin: const EdgeInsets.only(right: 8, bottom: 4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                image: widget.otherUserPhoto.isNotEmpty
-                    ? DecorationImage(
-                  image: CachedNetworkImageProvider(widget.otherUserPhoto),
-                  fit: BoxFit.cover,
-                )
-                    : null,
+                image:
+                    widget.otherUserPhoto.isNotEmpty
+                        ? DecorationImage(
+                          image: CachedNetworkImageProvider(
+                            widget.otherUserPhoto,
+                          ),
+                          fit: BoxFit.cover,
+                        )
+                        : null,
                 color: _mediumGrey,
                 border: Border.all(
                   color: _pureWhite.withOpacity(0.05),
                   width: 1,
                 ),
               ),
-              child: widget.otherUserPhoto.isEmpty
-                  ? Center(
-                  child: Text(
-                    widget.otherUserName.substring(0, 1).toUpperCase(),
-                    style: TextStyle(
-                      color: _pureWhite,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ))
-                  : null,
+              child:
+                  widget.otherUserPhoto.isEmpty
+                      ? Center(
+                        child: Text(
+                          widget.otherUserName.substring(0, 1).toUpperCase(),
+                          style: TextStyle(
+                            color: _pureWhite,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      )
+                      : null,
             ),
           ],
 
@@ -561,9 +603,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.7,
               ),
-              padding: messageType == 'text'
-                  ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
-                  : const EdgeInsets.all(8),
+              padding:
+                  messageType == 'text'
+                      ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+                      : const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isMe ? _pureWhite : _mediumGrey,
                 borderRadius: BorderRadius.circular(18).copyWith(
@@ -593,9 +636,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   else if (messageType == 'image')
                     _buildImageMessage(message, isMe)
                   else if (messageType == 'document')
-                      _buildDocumentMessage(message, isMe)
-                    else if (messageType == 'audio')
-                        _buildAudioMessage(message, messageId, isMe),
+                    _buildDocumentMessage(message, isMe)
+                  else if (messageType == 'audio')
+                    _buildAudioMessage(message, messageId, isMe),
 
                   const SizedBox(height: 4),
                   Row(
@@ -604,9 +647,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       Text(
                         time,
                         style: TextStyle(
-                          color: isMe
-                              ? _pureBlack.withOpacity(0.5)
-                              : _pureWhite.withOpacity(0.4),
+                          color:
+                              isMe
+                                  ? _pureBlack.withOpacity(0.5)
+                                  : _pureWhite.withOpacity(0.4),
                           fontSize: 10,
                         ),
                       ),
@@ -615,9 +659,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         Icon(
                           isRead ? Icons.done_all : Icons.done,
                           size: 12,
-                          color: isRead
-                              ? _pureBlack.withOpacity(0.7)
-                              : _pureBlack.withOpacity(0.4),
+                          color:
+                              isRead
+                                  ? _pureBlack.withOpacity(0.7)
+                                  : _pureBlack.withOpacity(0.4),
                         ),
                       ],
                     ],
@@ -631,16 +676,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildAudioMessage(Map<String, dynamic> message, String messageId, bool isMe) {
+  Widget _buildAudioMessage(
+    Map<String, dynamic> message,
+    String messageId,
+    bool isMe,
+  ) {
     final String audioUrl = message['mediaUrl'] ?? '';
     final int duration = message['duration'] ?? 0;
     final bool isPlaying = _currentlyPlayingId == messageId;
 
     // Extraer datos de la forma de onda o usar una predeterminada
     final List<dynamic> rawWaveformData = message['waveformData'] ?? [];
-    final List<double> waveformData = rawWaveformData.isEmpty
-        ? List.generate(40, (i) => 0.2 + (i % 5) * 0.1)
-        : rawWaveformData.map((v) => v as double).toList();
+    final List<double> waveformData =
+        rawWaveformData.isEmpty
+            ? List.generate(40, (i) => 0.2 + (i % 5) * 0.1)
+            : rawWaveformData.map((v) => v as double).toList();
 
     return Container(
       width: 180,
@@ -672,15 +722,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: List.generate(
                       waveformData.length ~/ 2, // Usar la mitad para que quepan
-                          (index) {
+                      (index) {
                         final double height = waveformData[index * 2];
                         return Container(
                           width: 2,
                           height: 20 * height,
                           decoration: BoxDecoration(
-                            color: isMe
-                                ? _pureBlack.withOpacity(0.3)
-                                : _pureWhite.withOpacity(0.3),
+                            color:
+                                isMe
+                                    ? _pureBlack.withOpacity(0.3)
+                                    : _pureWhite.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(1),
                           ),
                         );
@@ -693,11 +744,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   _formatDuration(duration),
                   style: TextStyle(
                     fontSize: 12,
-                    color: isMe
-                        ? _pureBlack.withOpacity(0.6)
-                        : _pureWhite.withOpacity(0.6),
+                    color:
+                        isMe
+                            ? _pureBlack.withOpacity(0.6)
+                            : _pureWhite.withOpacity(0.6),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -717,7 +769,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     // Configurar suscripción al estado de reproducción
     _playbackStateSubscription?.cancel();
-    _playbackStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+    _playbackStateSubscription = _audioPlayer.onPlayerStateChanged.listen((
+      state,
+    ) {
       if (state == audio_player.PlayerState.completed) {
         setState(() {
           _currentlyPlayingId = null;
@@ -730,9 +784,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       await _audioPlayer.play(audio_player.UrlSource(url));
     } catch (e) {
       print('Error reproduciendo audio: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al reproducir audio')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al reproducir audio')));
       setState(() {
         _currentlyPlayingId = null;
       });
@@ -756,24 +810,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           borderRadius: BorderRadius.circular(12),
           child: CachedNetworkImage(
             imageUrl: imageUrl,
-            placeholder: (context, url) => Container(
-              height: 200,
-              color: _pureBlack.withOpacity(0.1),
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: isMe ? _pureBlack.withOpacity(0.3) : _pureWhite.withOpacity(0.3),
+            placeholder:
+                (context, url) => Container(
+                  height: 200,
+                  color: _pureBlack.withOpacity(0.1),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color:
+                          isMe
+                              ? _pureBlack.withOpacity(0.3)
+                              : _pureWhite.withOpacity(0.3),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            errorWidget: (context, url, error) => Container(
-              height: 100,
-              color: _pureBlack.withOpacity(0.1),
-              child: Icon(
-                Icons.error_outline,
-                color: isMe ? _pureBlack.withOpacity(0.3) : _pureWhite.withOpacity(0.3),
-              ),
-            ),
+            errorWidget:
+                (context, url, error) => Container(
+                  height: 100,
+                  color: _pureBlack.withOpacity(0.1),
+                  child: Icon(
+                    Icons.error_outline,
+                    color:
+                        isMe
+                            ? _pureBlack.withOpacity(0.3)
+                            : _pureWhite.withOpacity(0.3),
+                  ),
+                ),
             fit: BoxFit.cover,
             width: double.infinity,
             height: 200,
@@ -797,12 +859,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: isMe ? _pureBlack.withOpacity(0.05) : _pureWhite.withOpacity(0.1),
+              color:
+                  isMe
+                      ? _pureBlack.withOpacity(0.05)
+                      : _pureWhite.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               _getFileIcon(fileExt),
-              color: isMe ? _pureBlack.withOpacity(0.7) : _pureWhite.withOpacity(0.7),
+              color:
+                  isMe
+                      ? _pureBlack.withOpacity(0.7)
+                      : _pureWhite.withOpacity(0.7),
               size: 24,
             ),
           ),
@@ -825,7 +893,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 Text(
                   formattedSize,
                   style: TextStyle(
-                    color: isMe ? _pureBlack.withOpacity(0.5) : _pureWhite.withOpacity(0.5),
+                    color:
+                        isMe
+                            ? _pureBlack.withOpacity(0.5)
+                            : _pureWhite.withOpacity(0.5),
                     fontSize: 12,
                   ),
                 ),
@@ -835,7 +906,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           IconButton(
             icon: Icon(
               Icons.download_rounded,
-              color: isMe ? _pureBlack.withOpacity(0.7) : _pureWhite.withOpacity(0.7),
+              color:
+                  isMe
+                      ? _pureBlack.withOpacity(0.7)
+                      : _pureWhite.withOpacity(0.7),
               size: 20,
             ),
             onPressed: () {
@@ -862,7 +936,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             height: 150,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: isMe ? _pureBlack.withOpacity(0.05) : _pureWhite.withOpacity(0.05),
+              color:
+                  isMe
+                      ? _pureBlack.withOpacity(0.05)
+                      : _pureWhite.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Stack(
@@ -871,7 +948,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   child: Icon(
                     Icons.map,
                     size: 60,
-                    color: isMe ? _pureBlack.withOpacity(0.1) : _pureWhite.withOpacity(0.1),
+                    color:
+                        isMe
+                            ? _pureBlack.withOpacity(0.1)
+                            : _pureWhite.withOpacity(0.1),
                   ),
                 ),
                 Center(
@@ -890,14 +970,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               Icon(
                 Icons.location_on,
                 size: 16,
-                color: isMe ? _pureBlack.withOpacity(0.6) : _pureWhite.withOpacity(0.6),
+                color:
+                    isMe
+                        ? _pureBlack.withOpacity(0.6)
+                        : _pureWhite.withOpacity(0.6),
               ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   address,
                   style: TextStyle(
-                    color: isMe ? _pureBlack.withOpacity(0.8) : _pureWhite.withOpacity(0.8),
+                    color:
+                        isMe
+                            ? _pureBlack.withOpacity(0.8)
+                            : _pureWhite.withOpacity(0.8),
                     fontSize: 13,
                   ),
                   maxLines: 2,
@@ -942,16 +1028,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   void _downloadFile(String url, String fileName) {
     // Esta es una implementación simulada
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Descargando $fileName...')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Descargando $fileName...')));
     // Para implementar la descarga real, se necesitaría usar
     // paquetes como dio o http para descargar y path_provider para guardar
   }
 
   Widget _buildMessageComposer() {
     return Container(
-      padding: EdgeInsets.fromLTRB(12, 16, 12, 16 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+        12,
+        16,
+        12,
+        16 + MediaQuery.of(context).padding.bottom,
+      ),
       decoration: BoxDecoration(
         color: _darkGrey,
         boxShadow: [
@@ -959,95 +1050,110 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             color: _pureBlack,
             blurRadius: 8,
             offset: const Offset(0, -1),
-          )
+          ),
         ],
       ),
-      child: _isRecording
-          ? _buildRecordingInterface()
-          : Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 36,
-              minHeight: 36,
-            ),
-            icon: Icon(
-              Icons.add_circle_outline,
-              color: _pureWhite.withOpacity(0.5),
-              size: 24,
-            ),
-            onPressed: () {
-              _showAttachmentOptions();
-            },
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: _mediumGrey,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: _pureWhite.withOpacity(0.08),
-                  width: 0.5,
-                ),
-              ),
-              child: TextField(
-                controller: _messageController,
-                style: TextStyle(color: _pureWhite),
-                decoration: InputDecoration(
-                  hintText: 'Escribe un mensaje...',
-                  hintStyle: TextStyle(
-                    color: _pureWhite.withOpacity(0.3),
-                    fontWeight: FontWeight.w300,
+      child:
+          _isRecording
+              ? _buildRecordingInterface()
+              : Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
+                    icon: Icon(
+                      Icons.add_circle_outline,
+                      color: _pureWhite.withOpacity(0.5),
+                      size: 24,
+                    ),
+                    onPressed: () {
+                      _showAttachmentOptions();
+                    },
                   ),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                ),
-                onChanged: (text) {
-                  // Solo llamamos a setState si cambia el estado del botón
-                  bool shouldBeComposing = text.isNotEmpty;
-                  if (_isComposing != shouldBeComposing) {
-                    setState(() {
-                      _isComposing = shouldBeComposing;
-                    });
-                  }
-                },
-                minLines: 1,
-                maxLines: 5,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _mediumGrey,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: _pureWhite.withOpacity(0.08),
+                          width: 0.5,
+                        ),
+                      ),
+                      child: TextField(
+                        controller: _messageController,
+                        style: TextStyle(color: _pureWhite),
+                        decoration: InputDecoration(
+                          hintText: 'Escribe un mensaje...',
+                          hintStyle: TextStyle(
+                            color: _pureWhite.withOpacity(0.3),
+                            fontWeight: FontWeight.w300,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                          ),
+                        ),
+                        onChanged: (text) {
+                          // Solo llamamos a setState si cambia el estado del botón
+                          bool shouldBeComposing = text.isNotEmpty;
+                          if (_isComposing != shouldBeComposing) {
+                            setState(() {
+                              _isComposing = shouldBeComposing;
+                            });
+                          }
+                        },
+                        minLines: 1,
+                        maxLines: 5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _isComposing ? _pureWhite : _mediumGrey,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color:
+                            _isComposing
+                                ? Colors.transparent
+                                : _pureWhite.withOpacity(0.08),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon:
+                          _isComposing
+                              ? Icon(
+                                Icons.send_rounded,
+                                color: _pureBlack,
+                                size: 20,
+                              )
+                              : Icon(
+                                Icons.mic_rounded,
+                                color: _pureWhite.withOpacity(0.5),
+                                size: 22,
+                              ),
+                      onPressed:
+                          _isComposing ? _sendMessage : _startVoiceRecording,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: _isComposing
-                  ? _pureWhite
-                  : _mediumGrey,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _isComposing
-                    ? Colors.transparent
-                    : _pureWhite.withOpacity(0.08),
-                width: 0.5,
-              ),
-            ),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: _isComposing
-                  ? Icon(Icons.send_rounded, color: _pureBlack, size: 20)
-                  : Icon(Icons.mic_rounded, color: _pureWhite.withOpacity(0.5), size: 22),
-              onPressed: _isComposing ? _sendMessage : _startVoiceRecording,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1055,11 +1161,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return Row(
       children: [
         IconButton(
-          icon: Icon(
-            Icons.close,
-            color: _pureWhite.withOpacity(0.6),
-            size: 24,
-          ),
+          icon: Icon(Icons.close, color: _pureWhite.withOpacity(0.6), size: 24),
           onPressed: _cancelRecording,
         ),
         const SizedBox(width: 8),
@@ -1076,11 +1178,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
             child: Row(
               children: [
-                Icon(
-                    Icons.mic,
-                    color: Colors.red,
-                    size: 20
-                ),
+                Icon(Icons.mic, color: Colors.red, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: AudioWaveforms(
@@ -1112,17 +1210,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         Container(
           width: 44,
           height: 44,
-          decoration: BoxDecoration(
-            color: Colors.red,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
           child: IconButton(
             padding: EdgeInsets.zero,
-            icon: Icon(
-              Icons.send,
-              color: _pureWhite,
-              size: 20,
-            ),
+            icon: Icon(Icons.send, color: _pureWhite, size: 20),
             onPressed: _stopRecording,
           ),
         ),
@@ -1137,57 +1228,58 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: Text(
-                  'Compartir',
-                  style: TextStyle(
-                    color: _pureWhite,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      builder:
+          (context) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildAttachmentOption(
-                    icon: Icons.photo_library_rounded,
-                    label: 'Galería',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _pickImage(ImageSource.gallery);
-                    },
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Text(
+                      'Compartir',
+                      style: TextStyle(
+                        color: _pureWhite,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 20,
+                      ),
+                    ),
                   ),
-                  _buildAttachmentOption(
-                    icon: Icons.camera_alt_rounded,
-                    label: 'Cámara',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _pickImage(ImageSource.camera);
-                    },
-                  ),
-                  _buildAttachmentOption(
-                    icon: Icons.mic_rounded,
-                    label: 'Audio',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _startVoiceRecording();
-                    },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildAttachmentOption(
+                        icon: Icons.photo_library_rounded,
+                        label: 'Galería',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _pickImage(ImageSource.gallery);
+                        },
+                      ),
+                      _buildAttachmentOption(
+                        icon: Icons.camera_alt_rounded,
+                        label: 'Cámara',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _pickImage(ImageSource.camera);
+                        },
+                      ),
+                      _buildAttachmentOption(
+                        icon: Icons.mic_rounded,
+                        label: 'Audio',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _startVoiceRecording();
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -1206,9 +1298,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       // Subir la imagen a Firebase Storage
       final String fileName = uuid.v4();
-      final Reference storageRef = _storage
-          .ref()
-          .child('chats/${widget.chatId}/images/$fileName.jpg');
+      final Reference storageRef = _storage.ref().child(
+        'chats/${widget.chatId}/images/$fileName.jpg',
+      );
 
       final File imageFile = File(pickedImage.path);
       final UploadTask uploadTask = storageRef.putFile(imageFile);
@@ -1224,16 +1316,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       });
     } catch (e) {
       print('Error al enviar imagen: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al enviar imagen: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al enviar imagen: $e')));
       setState(() {
         isLoading = false;
       });
     }
   }
 
-  Future<void> _sendMediaMessage(String url, String type, {Map<String, dynamic>? additionalData}) async {
+  Future<void> _sendMediaMessage(
+    String url,
+    String type, {
+    Map<String, dynamic>? additionalData,
+  }) async {
     try {
       final Map<String, dynamic> messageData = {
         'senderId': widget.currentUserId,
@@ -1295,19 +1391,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 width: 0.5,
               ),
             ),
-            child: Icon(
-              icon,
-              color: _pureWhite,
-              size: 26,
-            ),
+            child: Icon(icon, color: _pureWhite, size: 26),
           ),
           const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
-              color: _pureWhite.withOpacity(0.7),
-              fontSize: 12,
-            ),
+            style: TextStyle(color: _pureWhite.withOpacity(0.7), fontSize: 12),
           ),
         ],
       ),
@@ -1321,74 +1410,83 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: _pureWhite.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder:
+          (context) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: _pureWhite.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  _buildOptionTile(
+                    icon: Icons.person_outline_rounded,
+                    title: 'Ver perfil',
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Ver perfil no implementado'),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildOptionTile(
+                    icon: Icons.notifications_off_outlined,
+                    title: 'Silenciar notificaciones',
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Función no implementada'),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildOptionTile(
+                    icon: Icons.image_outlined,
+                    title: 'Archivos multimedia',
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Función no implementada'),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildOptionTile(
+                    icon: Icons.search,
+                    title: 'Buscar',
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Función no implementada'),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildOptionTile(
+                    icon: Icons.delete_outline_rounded,
+                    title: 'Eliminar chat',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _confirmDeleteChat();
+                    },
+                    isDestructive: true,
+                  ),
+                ],
               ),
-              _buildOptionTile(
-                icon: Icons.person_outline_rounded,
-                title: 'Ver perfil',
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Ver perfil no implementado')),
-                  );
-                },
-              ),
-              _buildOptionTile(
-                icon: Icons.notifications_off_outlined,
-                title: 'Silenciar notificaciones',
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Función no implementada')),
-                  );
-                },
-              ),
-              _buildOptionTile(
-                icon: Icons.image_outlined,
-                title: 'Archivos multimedia',
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Función no implementada')),
-                  );
-                },
-              ),
-              _buildOptionTile(
-                icon: Icons.search,
-                title: 'Buscar',
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Función no implementada')),
-                  );
-                },
-              ),
-              _buildOptionTile(
-                icon: Icons.delete_outline_rounded,
-                title: 'Eliminar chat',
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDeleteChat();
-                },
-                isDestructive: true,
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -1403,9 +1501,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isDestructive
-              ? Colors.red.withOpacity(0.1)
-              : _lightGrey,
+          color: isDestructive ? Colors.red.withOpacity(0.1) : _lightGrey,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
@@ -1431,13 +1527,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+        builder:
+            (context) => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
       );
 
       // Obtener el documento del chat actual
-      final chatDoc = await _firestore.collection('chats').doc(widget.chatId).get();
+      final chatDoc =
+          await _firestore.collection('chats').doc(widget.chatId).get();
       final chatData = chatDoc.data() ?? {};
 
       // Obtener o inicializar el array deletedBy
@@ -1452,16 +1550,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       }
 
       // Obtener la lista de participantes
-      final List<String> participants = List<String>.from(chatData['participants'] ?? []);
+      final List<String> participants = List<String>.from(
+        chatData['participants'] ?? [],
+      );
 
       // Si todos los participantes han eliminado el chat, marcarlo como completamente eliminado
       if (deletedBy.length >= participants.length) {
         // Eliminar mensajes (subcolección) - esto está permitido
-        final messagesSnapshot = await _firestore
-            .collection('chats')
-            .doc(widget.chatId)
-            .collection('messages')
-            .get();
+        final messagesSnapshot =
+            await _firestore
+                .collection('chats')
+                .doc(widget.chatId)
+                .collection('messages')
+                .get();
 
         // Crear batch para operaciones múltiples
         final batch = _firestore.batch();
@@ -1475,7 +1576,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         await _firestore.collection('chats').doc(widget.chatId).update({
           'deletedBy': deletedBy,
           'fullyDeleted': true,
-          'lastUpdate': FieldValue.serverTimestamp()
+          'lastUpdate': FieldValue.serverTimestamp(),
         });
 
         // Ejecutar el batch para eliminar los mensajes
@@ -1484,7 +1585,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         // Solo actualizar el campo deletedBy
         await _firestore.collection('chats').doc(widget.chatId).update({
           'deletedBy': deletedBy,
-          'lastUpdate': FieldValue.serverTimestamp()
+          'lastUpdate': FieldValue.serverTimestamp(),
         });
       }
 
@@ -1492,9 +1593,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       Navigator.pop(context);
 
       // Mostrar confirmación y volver a la lista
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chat eliminado con éxito')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Chat eliminado con éxito')));
 
       // Volver a la pantalla anterior
       Navigator.pop(context);
@@ -1503,9 +1604,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       Navigator.pop(context);
 
       print('Error eliminando chat: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar chat: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al eliminar chat: $e')));
     }
   }
 
@@ -1526,17 +1627,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           .doc(widget.chatId)
           .collection('messages')
           .add({
-        'senderId': widget.currentUserId,
-        'text': message,
-        'timestamp': FieldValue.serverTimestamp(),
-        'read': false,
-      });
+            'senderId': widget.currentUserId,
+            'text': message,
+            'timestamp': FieldValue.serverTimestamp(),
+            'read': false,
+          });
 
       // Update last message in chat
-      await _firestore
-          .collection('chats')
-          .doc(widget.chatId)
-          .update({
+      await _firestore.collection('chats').doc(widget.chatId).update({
         'lastMessage': message,
         'lastMessageTime': FieldValue.serverTimestamp(),
         'lastSenderId': widget.currentUserId,
@@ -1563,33 +1661,41 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _confirmDeleteChat() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: _darkGrey,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          '¿Eliminar chat?',
-          style: TextStyle(color: _pureWhite, fontWeight: FontWeight.w500),
-        ),
-        content: Text(
-          'Esta acción no se puede deshacer y eliminará todos los mensajes.',
-          style: TextStyle(color: _pureWhite.withOpacity(0.7)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(foregroundColor: _pureWhite.withOpacity(0.7)),
-            child: const Text('CANCELAR'),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: _darkGrey,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              '¿Eliminar chat?',
+              style: TextStyle(color: _pureWhite, fontWeight: FontWeight.w500),
+            ),
+            content: Text(
+              'Esta acción no se puede deshacer y eliminará todos los mensajes.',
+              style: TextStyle(color: _pureWhite.withOpacity(0.7)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: _pureWhite.withOpacity(0.7),
+                ),
+                child: const Text('CANCELAR'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _deleteChat();
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text(
+                  'ELIMINAR',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _deleteChat();
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('ELIMINAR', style: TextStyle(fontWeight: FontWeight.w500)),
-          ),
-        ],
-      ),
     );
   }
 }
