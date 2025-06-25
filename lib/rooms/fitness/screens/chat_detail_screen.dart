@@ -166,10 +166,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       // Obtener duración del audio
       final audioLength = await _getAudioDuration(audioFile);
 
-// Obtener datos de la forma de onda
-      final waveformData = await _recorderController.stop() != null
-          ? List<double>.generate(40, (i) => 0.2 + (i % 5) * 0.1)
-          : List<double>.generate(40, (i) => 0.2);
+      // Obtener datos de la forma de onda - asegúrate de capturarlos antes de detener la grabación
+      List<double> waveformData = [];
+      try {
+        // Intentar obtener los datos de la forma de onda del controlador
+        waveformData = _recorderController.waveformData
+            .map((amplitude) => amplitude / 100)
+            .toList();
+
+        // Si no hay suficientes datos, generar algunos predeterminados
+        if (waveformData.isEmpty || waveformData.length < 10) {
+          waveformData = List.generate(40, (i) => 0.2 + (i % 5) * 0.1);
+        }
+      } catch (e) {
+        print('Error al obtener datos de forma de onda: $e');
+        waveformData = List.generate(40, (i) => 0.2 + (i % 5) * 0.1);
+      }
 
       // Enviar mensaje con audio
       await _sendMediaMessage(
@@ -624,6 +636,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final int duration = message['duration'] ?? 0;
     final bool isPlaying = _currentlyPlayingId == messageId;
 
+    // Extraer datos de la forma de onda o usar una predeterminada
+    final List<dynamic> rawWaveformData = message['waveformData'] ?? [];
+    final List<double> waveformData = rawWaveformData.isEmpty
+        ? List.generate(40, (i) => 0.2 + (i % 5) * 0.1)
+        : rawWaveformData.map((v) => v as double).toList();
+
     return Container(
       width: 180,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
@@ -647,14 +665,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Línea horizontal que simula un audio
+                // Visualización de la forma de onda
                 Container(
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: isMe
-                        ? _pureBlack.withOpacity(0.3)
-                        : _pureWhite.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(1.5),
+                  height: 30,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(
+                      waveformData.length ~/ 2, // Usar la mitad para que quepan
+                          (index) {
+                        final double height = waveformData[index * 2];
+                        return Container(
+                          width: 2,
+                          height: 20 * height,
+                          decoration: BoxDecoration(
+                            color: isMe
+                                ? _pureBlack.withOpacity(0.3)
+                                : _pureWhite.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -977,9 +1008,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
                 onChanged: (text) {
-                  setState(() {
-                    _isComposing = text.isNotEmpty;
-                  });
+                  // Solo llamamos a setState si cambia el estado del botón
+                  bool shouldBeComposing = text.isNotEmpty;
+                  if (_isComposing != shouldBeComposing) {
+                    setState(() {
+                      _isComposing = shouldBeComposing;
+                    });
+                  }
                 },
                 minLines: 1,
                 maxLines: 5,
