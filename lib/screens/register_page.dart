@@ -19,18 +19,16 @@ class _RegisterPageState extends State<RegisterPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
+  final bioController = TextEditingController();
   bool acceptTerms = false;
   bool _isLoading = false;
   File? _profileImage;
+  File? _coverImage;
   final ImagePicker _picker = ImagePicker();
   int _currentStep = 0;
-  final _totalSteps = 3;
+  final _totalSteps = 2; // Reducido a 2 pasos
 
-  final bioController = TextEditingController();
-  File? _coverImage;
-  String? selectedPlan;
-
-  // Método para seleccionar imagen
+  // Método para seleccionar imagen de perfil
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -40,6 +38,20 @@ class _RegisterPageState extends State<RegisterPage> {
     if (image != null) {
       setState(() {
         _profileImage = File(image.path);
+      });
+    }
+  }
+
+  // Método para seleccionar imagen de portada
+  Future<void> _pickCoverImage() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (image != null) {
+      setState(() {
+        _coverImage = File(image.path);
       });
     }
   }
@@ -62,17 +74,21 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  // Método para seleccionar imagen de portada
-  Future<void> _pickCoverImage() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
-    );
+  Future<String?> _uploadProfileImage(String uid) async {
+    if (_profileImage == null) return null;
 
-    if (image != null) {
-      setState(() {
-        _coverImage = File(image.path);
-      });
+    try {
+      final fileName = path.basename(_profileImage!.path);
+      final destination = 'profile_images/$uid/$fileName';
+
+      final storageRef = FirebaseStorage.instance.ref().child(destination);
+      final uploadTask = storageRef.putFile(_profileImage!);
+      final snapshot = await uploadTask.whenComplete(() {});
+
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      print('Error al subir la imagen: $e');
+      return null;
     }
   }
 
@@ -94,7 +110,7 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  // Método modificado para el registro completo
+  // Método para finalizar el registro
   Future<void> _finishRegistration() async {
     setState(() {
       _isLoading = true;
@@ -104,9 +120,9 @@ class _RegisterPageState extends State<RegisterPage> {
       // Registro en Firebase Auth
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
       final uid = userCredential.user!.uid;
 
@@ -122,152 +138,15 @@ class _RegisterPageState extends State<RegisterPage> {
         coverPhotoUrl = await _uploadCoverImage(uid);
       }
 
-      // Registro en Firestore con datos ampliados
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': nameController.text.trim(),
-        'email': emailController.text.trim(),
-        'photo':
-            photoUrl ??
-            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(nameController.text.trim())}',
-        'coverPhoto': coverPhotoUrl,
-        'description': bioController.text.trim(),
-        'role': 'user',
-        'socials': {'instagram': '', 'facebook': '', 'x': '', 'whatsapp': ''},
-        'approvedRooms': [],
-        'createdAt': FieldValue.serverTimestamp(),
-        'plan': {
-          'name':
-              selectedPlan ??
-              'Discipline+', // Plan por defecto en prueba gratis
-          'status': 'trial',
-          'trialStartDate': FieldValue.serverTimestamp(),
-          'trialEndDate': Timestamp.fromDate(
-            DateTime.now().add(const Duration(days: 7)),
-          ),
-          'subscriptionId': '',
-          'lastPaymentDate': null,
-          'nextPaymentDate': null,
-        },
-      });
-
-      // Crear un documento de seguimiento de la prueba gratuita
-      await FirebaseFirestore.instance.collection('subscriptions').add({
-        'userId': uid,
-        'plan': selectedPlan ?? 'Discipline+',
-        'status': 'trial',
-        'startDate': FieldValue.serverTimestamp(),
-        'endDate': Timestamp.fromDate(
-          DateTime.now().add(const Duration(days: 7)),
-        ),
-        'paymentMethod': null,
-        'autoRenew': true,
-      });
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Cuenta creada con éxito. ¡Disfruta tu prueba gratis!",
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      _showError('Error al completar el registro: $e');
-    }
-  }
-
-  // Método para subir imagen a Firebase Storage
-  Future<String?> _uploadProfileImage(String uid) async {
-    if (_profileImage == null) return null;
-
-    try {
-      final fileName = path.basename(_profileImage!.path);
-      final destination = 'profile_images/$uid/$fileName';
-
-      final storageRef = FirebaseStorage.instance.ref().child(destination);
-      final uploadTask = storageRef.putFile(_profileImage!);
-      final snapshot = await uploadTask.whenComplete(() {});
-
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      print('Error al subir la imagen: $e');
-      return null;
-    }
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-
-  Future<void> register() async {
-    if (nameController.text.trim().isEmpty) {
-      _showError("Ingresa tu nombre completo.");
-      return;
-    }
-
-    if (passwordController.text != confirmPasswordController.text) {
-      _showError("Las contraseñas no coinciden.");
-      return;
-    }
-
-    if (!acceptTerms) {
-      _showError("Debe aceptar los términos y condiciones.");
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Registro en Firebase Auth
-      final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
-
-      final uid = userCredential.user!.uid;
-
-      // Subir imagen si existe
-      String photoUrl;
-      if (_profileImage != null) {
-        final uploadedUrl = await _uploadProfileImage(uid);
-        photoUrl =
-            uploadedUrl ??
-            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(nameController.text.trim())}';
-      } else {
-        photoUrl =
-            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(nameController.text.trim())}';
-      }
-
       // Registro en Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': nameController.text.trim(),
         'email': emailController.text.trim(),
-        'photo': photoUrl, // This is storing the photo URL
-        'description': '',
+        'photo':
+        photoUrl ??
+            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(nameController.text.trim())}',
+        'coverPhoto': coverPhotoUrl,
+        'description': bioController.text.trim(),
         'role': 'user',
         'socials': {'instagram': '', 'facebook': '', 'x': '', 'whatsapp': ''},
         'approvedRooms': [],
@@ -291,25 +170,23 @@ class _RegisterPageState extends State<RegisterPage> {
           MaterialPageRoute(builder: (_) => const LoginPage()),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      String message = switch (e.code) {
-        'email-already-in-use' => 'El correo ya está registrado.',
-        'invalid-email' => 'Correo inválido.',
-        'weak-password' => 'La contraseña es muy débil.',
-        _ => 'Error inesperado: ${e.message}',
-      };
-
-      _showError(message);
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      _showError('Error inesperado: $e');
+      _showError('Error al completar el registro: $e');
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 
   InputDecoration _inputStyle(String label, IconData icon) {
@@ -358,10 +235,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   // Contenido según el paso actual
                   if (_currentStep == 0)
                     _buildBasicInfoStep()
-                  else if (_currentStep == 1)
-                    _buildProfileStep()
                   else
-                    _buildPlanSelectionStep(),
+                    _buildProfileStep(),
 
                   const SizedBox(height: 20),
 
@@ -383,57 +258,48 @@ class _RegisterPageState extends State<RegisterPage> {
 
                       ElevatedButton(
                         onPressed:
-                            _isLoading
-                                ? null
-                                : () {
-                                  if (_currentStep == 0) {
-                                    // Validación del paso 1
-                                    if (nameController.text.trim().isEmpty) {
-                                      _showError("Ingresa tu nombre completo.");
-                                      return;
-                                    }
-                                    if (passwordController.text !=
-                                        confirmPasswordController.text) {
-                                      _showError(
-                                        "Las contraseñas no coinciden.",
-                                      );
-                                      return;
-                                    }
-                                    if (!acceptTerms) {
-                                      _showError(
-                                        "Debe aceptar los términos y condiciones.",
-                                      );
-                                      return;
-                                    }
-                                    _nextStep();
-                                  } else if (_currentStep == 1) {
-                                    // El paso de perfil es opcional, así que podemos avanzar sin validar
-                                    _nextStep();
-                                  } else {
-                                    // Último paso: completar el registro
-                                    if (selectedPlan == null) {
-                                      _showError(
-                                        "Por favor selecciona un plan.",
-                                      );
-                                      return;
-                                    }
-                                    _finishRegistration();
-                                  }
-                                },
+                        _isLoading
+                            ? null
+                            : () {
+                          if (_currentStep == 0) {
+                            // Validación del paso 1
+                            if (nameController.text.trim().isEmpty) {
+                              _showError("Ingresa tu nombre completo.");
+                              return;
+                            }
+                            if (passwordController.text !=
+                                confirmPasswordController.text) {
+                              _showError(
+                                "Las contraseñas no coinciden.",
+                              );
+                              return;
+                            }
+                            if (!acceptTerms) {
+                              _showError(
+                                "Debe aceptar los términos y condiciones.",
+                              );
+                              return;
+                            }
+                            _nextStep();
+                          } else {
+                            // Último paso: completar el registro
+                            _finishRegistration();
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,
                           foregroundColor: Colors.white,
                         ),
                         child:
-                            _isLoading
-                                ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                                : Text(
-                                  _currentStep == _totalSteps - 1
-                                      ? 'Finalizar'
-                                      : 'Siguiente',
-                                ),
+                        _isLoading
+                            ? const CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                            : Text(
+                          _currentStep == _totalSteps - 1
+                              ? 'Finalizar'
+                              : 'Siguiente',
+                        ),
                       ),
                     ],
                   ),
@@ -453,7 +319,7 @@ class _RegisterPageState extends State<RegisterPage> {
       children: List.generate(_totalSteps, (index) {
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: 80,
+          width: 120, // Ancho mayor al tener menos pasos
           height: 5,
           decoration: BoxDecoration(
             color: index <= _currentStep ? Colors.black : Colors.grey[300],
@@ -557,11 +423,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 radius: 50,
                 backgroundColor: Colors.grey[200],
                 backgroundImage:
-                    _profileImage != null ? FileImage(_profileImage!) : null,
+                _profileImage != null ? FileImage(_profileImage!) : null,
                 child:
-                    _profileImage == null
-                        ? Icon(Icons.person, size: 50, color: Colors.grey[400])
-                        : null,
+                _profileImage == null
+                    ? Icon(Icons.person, size: 50, color: Colors.grey[400])
+                    : null,
               ),
               Positioned(
                 bottom: 0,
@@ -595,31 +461,31 @@ class _RegisterPageState extends State<RegisterPage> {
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(10),
               image:
-                  _coverImage != null
-                      ? DecorationImage(
-                        image: FileImage(_coverImage!),
-                        fit: BoxFit.cover,
-                      )
-                      : null,
+              _coverImage != null
+                  ? DecorationImage(
+                image: FileImage(_coverImage!),
+                fit: BoxFit.cover,
+              )
+                  : null,
             ),
             child:
-                _coverImage == null
-                    ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_photo_alternate,
-                          size: 40,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Añadir foto de portada',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    )
-                    : null,
+            _coverImage == null
+                ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_photo_alternate,
+                  size: 40,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Añadir foto de portada',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            )
+                : null,
           ),
         ),
         const SizedBox(height: 24),
@@ -634,254 +500,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ],
-    );
-  }
-
-  // Widget para el paso 3: selección de plan
-  Widget _buildPlanSelectionStep() {
-    return Column(
-      children: [
-        Text(
-          "Elige tu plan",
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          "Paso 3: Selecciona el plan que mejor se adapte a ti",
-          style: TextStyle(color: Colors.grey[600], fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 10),
-
-        // Mensaje de prueba gratuita
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            border: Border.all(color: Colors.green.shade300),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.card_giftcard, color: Colors.green),
-              const SizedBox(width: 8),
-              Expanded(
-                child: const Text(
-                  "Disfruta 7 días GRATIS del plan Discipline+ al registrarte",
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Tarjetas de planes
-        _buildPlanCard(
-          title: "🥉 Plan Discipline",
-          price: "₡3.900/mes",
-          features: [
-            "Acceso a sala oficial DISCIPLINE",
-            "Ver publicaciones y reacciones de la comunidad",
-            "Rutina básica actualizada periódicamente",
-          ],
-          planId: "Discipline",
-        ),
-        const SizedBox(height: 16),
-
-        _buildPlanCard(
-          title: "🥈 Plan Élite",
-          price: "₡7.900/mes",
-          features: [
-            "Todo lo del plan Discipline",
-            "(Añadir características adicionales)",
-          ],
-          planId: "Elite",
-        ),
-        const SizedBox(height: 16),
-
-        _buildPlanCard(
-          title: "🥇 Plan Discipline+",
-          price: "₡13.900/mes",
-          features: [
-            "EL PLAN ÉLITE. Acceso completo y exclusivo.",
-            "Todo lo de Élite +",
-            "Acceso al chat privado con el coach",
-            "Rutinas 100% personalizadas",
-            "Acceso exclusivo a salas verificadas",
-            "Insignia Premium Discipline+",
-            "Participación prioritaria en futuros sorteos",
-            "Beneficios continuos según mejoras en la app",
-          ],
-          isPremium: true,
-          planId: "Discipline+",
-          isRecommended: true,
-        ),
-      ],
-    );
-  }
-
-  // Widget para cada tarjeta de plan
-  Widget _buildPlanCard({
-    required String title,
-    required String price,
-    required List<String> features,
-    required String planId,
-    bool isPremium = false,
-    bool isRecommended = false,
-  }) {
-    final bool isSelected = selectedPlan == planId;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedPlan = planId;
-        });
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color:
-              isSelected
-                  ? (isPremium ? Colors.black : Colors.grey[800])
-                  : Colors.white,
-          border: Border.all(
-            color:
-                isSelected
-                    ? (isPremium ? Colors.yellow[600]! : Colors.grey[400]!)
-                    : Colors.grey[300]!,
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow:
-              isSelected
-                  ? [
-                    BoxShadow(
-                      color:
-                          isPremium
-                              ? Colors.yellow[600]!.withOpacity(0.3)
-                              : Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                  : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isRecommended)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 3,
-                ),
-                margin: const EdgeInsets.only(bottom: 10),
-                decoration: BoxDecoration(
-                  color: Colors.yellow[600],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  "RECOMENDADO",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-
-            // Title and price
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.white : Colors.black,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    price,
-                    style: TextStyle(
-                      color: isSelected ? Colors.black : Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Features
-            ...features.map((feature) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      size: 18,
-                      color: isSelected ? Colors.white : Colors.green,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        feature,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-
-            // Selected indicator
-            const SizedBox(height: 10),
-            if (isSelected)
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: isPremium ? Colors.yellow[600] : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    "SELECCIONADO",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 }

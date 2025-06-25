@@ -8,7 +8,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -828,14 +827,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       _shareLocation();
                     },
                   ),
-                  _buildAttachmentOption(
-                    icon: Icons.insert_drive_file_rounded,
-                    label: 'Documento',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _pickDocument();
-                    },
-                  ),
                 ],
               ),
             ],
@@ -887,55 +878,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Future<void> _pickDocument() async {
-    try {
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'],
-      );
-
-      if (result == null || result.files.isEmpty) return;
-
-      setState(() {
-        isLoading = true;
-      });
-
-      final PlatformFile file = result.files.first;
-      final String fileName = const Uuid().v4() + '.' + file.extension!;
-      final Reference storageRef = _storage
-          .ref()
-          .child('chats/${widget.chatId}/documents/$fileName');
-
-      final File docFile = File(file.path!);
-      final UploadTask uploadTask = storageRef.putFile(docFile);
-
-      final TaskSnapshot snapshot = await uploadTask;
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      // Guardar mensaje con documento en Firestore
-      await _sendMediaMessage(
-          downloadUrl,
-          'document',
-          additionalData: {
-            'fileName': file.name,
-            'fileSize': file.size,
-            'fileExt': file.extension,
-          }
-      );
-
-      setState(() {
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error al enviar documento: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al enviar documento: $e')),
-      );
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
 
   Future<void> _shareLocation() async {
     try {
