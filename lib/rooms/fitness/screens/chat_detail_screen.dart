@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:audioplayers/audioplayers.dart' as audio_player;
@@ -86,6 +87,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   void _startVoiceRecording() async {
     try {
+      // Solicitar permisos primero
+      final status = await Permission.microphone.request();
+      if (status != PermissionStatus.granted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Se requiere permiso de micrófono para grabar audio')),
+        );
+        return;
+      }
+
       // Crear directorio temporal para almacenar la grabación
       final tempDir = await getTemporaryDirectory();
       _recordingPath = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
@@ -104,107 +114,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           _recordingDuration++;
         });
       });
-
-      // Mostrar UI de grabación
-      showModalBottomSheet(
-        context: context,
-        isDismissible: false,
-        backgroundColor: _darkGrey,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        builder: (context) => StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Grabando audio',
-                      style: TextStyle(
-                        color: _pureWhite,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _formatDuration(_recordingDuration),
-                      style: TextStyle(
-                        color: _pureWhite.withOpacity(0.7),
-                        fontSize: 48,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Visualización de onda de audio
-                    Container(
-                      height: 50,
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      child: AudioWaveforms(
-                        recorderController: _recorderController,
-                        size: Size(MediaQuery.of(context).size.width - 80, 50),
-                        waveStyle: WaveStyle(
-                          waveColor: _pureWhite.withOpacity(0.7),
-                          showMiddleLine: false,
-                          extendWaveform: true,
-                          showDurationLabel: false,
-                          spacing: 6.0,
-                          waveThickness: 4,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        InkWell(
-                          onTap: () {
-                            Navigator.pop(context);
-                            _cancelRecording();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: _lightGrey,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.close,
-                              color: _pureWhite,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () {
-                            Navigator.pop(context);
-                            _stopRecording();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.send,
-                              color: _pureWhite,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      );
     } catch (e) {
       print('Error al iniciar grabación: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -723,68 +632,52 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final String audioUrl = message['mediaUrl'] ?? '';
     final int duration = message['duration'] ?? 0;
     final bool isPlaying = _currentlyPlayingId == messageId;
-    final List<double> waveformData = message['waveformData'] != null
-        ? List<double>.from(message['waveformData'])
-        : List.generate(40, (index) => 0.2 + (index % 5) * 0.1); // Forma de onda genérica
 
     return Container(
-      width: 220,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Column(
+      width: 180,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      child: Row(
         children: [
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: isMe ? _pureBlack : _pureWhite,
-                  size: 28,
+          IconButton(
+            icon: Icon(
+              isPlaying ? Icons.pause : Icons.play_arrow,
+              color: isMe ? _pureBlack : _pureWhite,
+              size: 28,
+            ),
+            onPressed: () {
+              if (isPlaying) {
+                _pauseAudio();
+              } else {
+                _playAudio(audioUrl, messageId);
+              }
+            },
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Línea horizontal que simula un audio
+                Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: isMe
+                        ? _pureBlack.withOpacity(0.3)
+                        : _pureWhite.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
                 ),
-                onPressed: () {
-                  if (isPlaying) {
-                    _pauseAudio();
-                  } else {
-                    _playAudio(audioUrl, messageId);
-                  }
-                },
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Forma de onda estática
-                    Container(
-                      height: 30,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: waveformData.map((height) {
-                          return Container(
-                            width: 2.5,
-                            height: 25 * height,
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? _pureBlack.withOpacity(0.3)
-                                  : _pureWhite.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(1),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDuration(duration),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isMe
-                            ? _pureBlack.withOpacity(0.6)
-                            : _pureWhite.withOpacity(0.6),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  _formatDuration(duration),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isMe
+                        ? _pureBlack.withOpacity(0.6)
+                        : _pureWhite.withOpacity(0.6),
+                  ),
+                )
+              ],
+            ),
           ),
         ],
       ),
@@ -1047,7 +940,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           )
         ],
       ),
-      child: Row(
+      child: _isRecording
+          ? _buildRecordingInterface()
+          : Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           IconButton(
@@ -1127,6 +1022,85 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRecordingInterface() {
+    return Row(
+      children: [
+        IconButton(
+          icon: Icon(
+            Icons.close,
+            color: _pureWhite.withOpacity(0.6),
+            size: 24,
+          ),
+          onPressed: _cancelRecording,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _mediumGrey,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.red.withOpacity(0.5),
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                    Icons.mic,
+                    color: Colors.red,
+                    size: 20
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: AudioWaveforms(
+                    recorderController: _recorderController,
+                    size: Size(double.infinity, 32),
+                    waveStyle: WaveStyle(
+                      waveColor: Colors.red.withOpacity(0.7),
+                      showMiddleLine: false,
+                      extendWaveform: true,
+                      showDurationLabel: false,
+                      spacing: 4.0,
+                      waveThickness: 3,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _formatDuration(_recordingDuration),
+                  style: TextStyle(
+                    color: _pureWhite.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            icon: Icon(
+              Icons.send,
+              color: _pureWhite,
+              size: 20,
+            ),
+            onPressed: _stopRecording,
+          ),
+        ),
+      ],
     );
   }
 
