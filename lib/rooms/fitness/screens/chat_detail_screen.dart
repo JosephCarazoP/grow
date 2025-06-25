@@ -1,16 +1,15 @@
-// lib/rooms/fitness/screens/chat_detail_screen.dart
+import 'dart:async';
 import 'dart:io';
-
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:audio_waveforms/audio_waveforms.dart';
+import 'package:audioplayers/audioplayers.dart' as audio_player;
+import 'package:path_provider/path_provider.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -49,10 +48,271 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final Color _mediumGrey = Color(0xFF2C2C2E);
   final Color _lightGrey = Color(0xFF3A3A3C);
 
+  late final RecorderController _recorderController;
+  final audio_player.AudioPlayer _audioPlayer = audio_player.AudioPlayer();
+  bool _isRecording = false;
+  String? _recordingPath;
+  Timer? _recordingTimer;
+  int _recordingDuration = 0;
+  StreamSubscription<audio_player.PlayerState>? _playbackStateSubscription;
+  String? _currentlyPlayingId;
+
   @override
   void initState() {
     super.initState();
     _updateChatParticipantInfo();
+    _initRecorder();
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    _recorderController.dispose();
+    _audioPlayer.dispose();
+    _recordingTimer?.cancel();
+    _playbackStateSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _initRecorder() {
+    _recorderController = RecorderController()
+      ..androidEncoder = AndroidEncoder.aac
+      ..androidOutputFormat = AndroidOutputFormat.mpeg4
+      ..iosEncoder = IosEncoder.kAudioFormatMPEG4AAC
+      ..sampleRate = 44100
+      ..bitRate = 128000;
+  }
+
+  void _startVoiceRecording() async {
+    try {
+      // Crear directorio temporal para almacenar la grabación
+      final tempDir = await getTemporaryDirectory();
+      _recordingPath = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      // Iniciar grabación
+      await _recorderController.record(path: _recordingPath);
+
+      setState(() {
+        _isRecording = true;
+        _recordingDuration = 0;
+      });
+
+      // Iniciar temporizador para mostrar duración
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _recordingDuration++;
+        });
+      });
+
+      // Mostrar UI de grabación
+      showModalBottomSheet(
+        context: context,
+        isDismissible: false,
+        backgroundColor: _darkGrey,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (context) => StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Grabando audio',
+                      style: TextStyle(
+                        color: _pureWhite,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _formatDuration(_recordingDuration),
+                      style: TextStyle(
+                        color: _pureWhite.withOpacity(0.7),
+                        fontSize: 48,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Visualización de onda de audio
+                    Container(
+                      height: 50,
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      child: AudioWaveforms(
+                        recorderController: _recorderController,
+                        size: Size(MediaQuery.of(context).size.width - 80, 50),
+                        waveStyle: WaveStyle(
+                          waveColor: _pureWhite.withOpacity(0.7),
+                          showMiddleLine: false,
+                          extendWaveform: true,
+                          showDurationLabel: false,
+                          spacing: 6.0,
+                          waveThickness: 4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            Navigator.pop(context);
+                            _cancelRecording();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: _lightGrey,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              color: _pureWhite,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            Navigator.pop(context);
+                            _stopRecording();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.send,
+                              color: _pureWhite,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    } catch (e) {
+      print('Error al iniciar grabación: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al iniciar grabación: $e')),
+      );
+    }
+  }
+
+  void _cancelRecording() async {
+    _recordingTimer?.cancel();
+    await _recorderController.stop();
+    setState(() {
+      _isRecording = false;
+      _recordingDuration = 0;
+    });
+
+    // Eliminar el archivo temporal
+    if (_recordingPath != null) {
+      final file = File(_recordingPath!);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+  }
+
+  void _stopRecording() async {
+    _recordingTimer?.cancel();
+    final path = await _recorderController.stop();
+    setState(() {
+      _isRecording = false;
+      _recordingDuration = 0;
+    });
+
+    if (path != null) {
+      _uploadAndSendAudio(path);
+    }
+  }
+
+
+  Future<void> _uploadAndSendAudio(String filePath) async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      // Generar nombre único para el archivo
+      final String fileName = '${uuid.v4()}.m4a';
+      final Reference storageRef = _storage
+          .ref()
+          .child('chats/${widget.chatId}/audio/$fileName');
+
+      // Subir archivo a Firebase Storage
+      final File audioFile = File(filePath);
+      final UploadTask uploadTask = storageRef.putFile(audioFile);
+
+      final TaskSnapshot snapshot = await uploadTask;
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // Obtener duración del audio
+      final audioLength = await _getAudioDuration(audioFile);
+
+// Obtener datos de la forma de onda
+      final waveformData = await _recorderController.stop() != null
+          ? List<double>.generate(40, (i) => 0.2 + (i % 5) * 0.1)
+          : List<double>.generate(40, (i) => 0.2);
+
+      // Enviar mensaje con audio
+      await _sendMediaMessage(
+          downloadUrl,
+          'audio',
+          additionalData: {
+            'duration': audioLength, // Duración en segundos
+            'waveformData': waveformData,
+          }
+      );
+
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error al enviar audio: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al enviar audio: $e')),
+      );
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<int> _getAudioDuration(File file) async {
+    try {
+      // Usar el reproductor para obtener la duración
+      final player = audio_player.AudioPlayer();
+      await player.setSourceDeviceFile(file.path);
+      final duration = await player.getDuration() ?? const Duration(seconds: 0);
+      await player.dispose();
+      return duration.inSeconds;
+    } catch (e) {
+      print('Error al obtener duración del audio: $e');
+      return 0;
+    }
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = (seconds / 60).floor().toString().padLeft(2, '0');
+    final remainingSeconds = (seconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$remainingSeconds';
   }
 
   @override
@@ -422,8 +682,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     _buildImageMessage(message, isMe)
                   else if (messageType == 'document')
                       _buildDocumentMessage(message, isMe)
-                    else if (messageType == 'location')
-                        _buildLocationMessage(message, isMe),
+                    else if (messageType == 'audio')
+                        _buildAudioMessage(message, messageId, isMe),
 
                   const SizedBox(height: 4),
                   Row(
@@ -457,6 +717,118 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildAudioMessage(Map<String, dynamic> message, String messageId, bool isMe) {
+    final String audioUrl = message['mediaUrl'] ?? '';
+    final int duration = message['duration'] ?? 0;
+    final bool isPlaying = _currentlyPlayingId == messageId;
+    final List<double> waveformData = message['waveformData'] != null
+        ? List<double>.from(message['waveformData'])
+        : List.generate(40, (index) => 0.2 + (index % 5) * 0.1); // Forma de onda genérica
+
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: isMe ? _pureBlack : _pureWhite,
+                  size: 28,
+                ),
+                onPressed: () {
+                  if (isPlaying) {
+                    _pauseAudio();
+                  } else {
+                    _playAudio(audioUrl, messageId);
+                  }
+                },
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Forma de onda estática
+                    Container(
+                      height: 30,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: waveformData.map((height) {
+                          return Container(
+                            width: 2.5,
+                            height: 25 * height,
+                            decoration: BoxDecoration(
+                              color: isMe
+                                  ? _pureBlack.withOpacity(0.3)
+                                  : _pureWhite.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatDuration(duration),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isMe
+                            ? _pureBlack.withOpacity(0.6)
+                            : _pureWhite.withOpacity(0.6),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _playAudio(String url, String messageId) async {
+    // Detener cualquier reproducción actual
+    await _audioPlayer.stop();
+
+    // Actualizar estado
+    setState(() {
+      _currentlyPlayingId = messageId;
+    });
+
+    // Configurar suscripción al estado de reproducción
+    _playbackStateSubscription?.cancel();
+    _playbackStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (state == audio_player.PlayerState.completed) {
+        setState(() {
+          _currentlyPlayingId = null;
+        });
+      }
+    });
+
+    // Reproducir audio
+    try {
+      await _audioPlayer.play(audio_player.UrlSource(url));
+    } catch (e) {
+      print('Error reproduciendo audio: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al reproducir audio')),
+      );
+      setState(() {
+        _currentlyPlayingId = null;
+      });
+    }
+  }
+
+  void _pauseAudio() async {
+    await _audioPlayer.pause();
+    setState(() {
+      _currentlyPlayingId = null;
+    });
   }
 
   Widget _buildImageMessage(Map<String, dynamic> message, bool isMe) {
@@ -619,18 +991,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () => _openMap(latitude, longitude),
-            child: Text(
-              'Abrir en Maps',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -672,11 +1032,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
     // Para implementar la descarga real, se necesitaría usar
     // paquetes como dio o http para descargar y path_provider para guardar
-  }
-
-  void _openMap(double latitude, double longitude) {
-    final Uri uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
-    launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Widget _buildMessageComposer() {
@@ -801,7 +1156,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
               ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildAttachmentOption(
                     icon: Icons.photo_library_rounded,
@@ -820,11 +1175,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     },
                   ),
                   _buildAttachmentOption(
-                    icon: Icons.location_on_rounded,
-                    label: 'Ubicación',
+                    icon: Icons.mic_rounded,
+                    label: 'Audio',
                     onTap: () {
                       Navigator.pop(context);
-                      _shareLocation();
+                      _startVoiceRecording();
                     },
                   ),
                 ],
@@ -871,93 +1226,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       print('Error al enviar imagen: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al enviar imagen: $e')),
-      );
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-
-  Future<void> _shareLocation() async {
-    try {
-      setState(() {
-        isLoading = true;
-      });
-
-      // Verificar permisos de ubicación
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permiso de ubicación denegado')),
-          );
-          setState(() {
-            isLoading = false;
-          });
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Los permisos de ubicación están permanentemente denegados'),
-          ),
-        );
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-
-      // Obtener ubicación actual
-      final Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      // Obtener dirección de la ubicación (opcional)
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      String address = 'Ubicación desconocida';
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        address = '${place.street}, ${place.locality}, ${place.country}';
-      }
-
-      // Guardar mensaje con ubicación en Firestore
-      await _firestore
-          .collection('chats')
-          .doc(widget.chatId)
-          .collection('messages')
-          .add({
-        'senderId': widget.currentUserId,
-        'messageType': 'location',
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'address': address,
-        'timestamp': FieldValue.serverTimestamp(),
-        'read': false,
-      });
-
-      // Actualizar último mensaje
-      await _firestore.collection('chats').doc(widget.chatId).update({
-        'lastMessage': '📍 Ubicación compartida',
-        'lastMessageTime': FieldValue.serverTimestamp(),
-        'lastSenderId': widget.currentUserId,
-      });
-
-      setState(() {
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error al compartir ubicación: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al compartir ubicación: $e')),
       );
       setState(() {
         isLoading = false;
@@ -1290,13 +1558,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         const SnackBar(content: Text('Error al enviar el mensaje')),
       );
     }
-  }
-
-  void _startVoiceRecording() {
-    // Placeholder for voice recording functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Función de grabación de voz no implementada')),
-    );
   }
 
   void _confirmDeleteChat() {
