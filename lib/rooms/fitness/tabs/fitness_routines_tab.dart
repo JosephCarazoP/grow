@@ -9,7 +9,6 @@ class FitnessRoutinesTab extends StatefulWidget {
   final Function(String) navigateToSection;
   final String userId;
 
-
   const FitnessRoutinesTab({
     Key? key,
     required this.roomData,
@@ -409,7 +408,10 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                 });
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     // Workout thumbnail with badge overlay
@@ -434,26 +436,31 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                             child: CachedNetworkImage(
                               imageUrl: workout.imageUrl,
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                color: Colors.grey.shade900,
-                                child: const Center(
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white54),
+                              placeholder:
+                                  (context, url) => Container(
+                                    color: Colors.grey.shade900,
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white54,
+                                              ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                              errorWidget: (context, url, error) => Container(
-                                color: Colors.grey.shade900,
-                                child: const Icon(
-                                  Icons.fitness_center,
-                                  color: Colors.white38,
-                                ),
-                              ),
+                              errorWidget:
+                                  (context, url, error) => Container(
+                                    color: Colors.grey.shade900,
+                                    child: const Icon(
+                                      Icons.fitness_center,
+                                      color: Colors.white38,
+                                    ),
+                                  ),
                             ),
                           ),
                         ),
@@ -463,11 +470,15 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                           top: 0,
                           right: 0,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: workout.type == WorkoutType.personalized
-                                  ? Colors.purpleAccent
-                                  : Colors.blueAccent,
+                              color:
+                                  workout.type == WorkoutType.personalized
+                                      ? Colors.purpleAccent
+                                      : Colors.blueAccent,
                               borderRadius: const BorderRadius.only(
                                 bottomLeft: Radius.circular(4),
                                 topRight: Radius.circular(8),
@@ -500,68 +511,88 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              // Type text
-                              Text(
-                                workout.type == WorkoutType.personalized
-                                    ? "Personalizado"
-                                    : "Reto",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: workout.type == WorkoutType.personalized
-                                      ? Colors.purpleAccent
-                                      : Colors.blueAccent,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                width: 3,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.5),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.fitness_center,
-                                size: 12,
-                                color: Colors.white.withOpacity(0.5),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                workout.category,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white.withOpacity(0.6),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                width: 3,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.5),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.timer_outlined,
-                                size: 12,
-                                color: Colors.white.withOpacity(0.5),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${workout.durationMinutes} min',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white.withOpacity(0.6),
-                                ),
-                              ),
-                            ],
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final availableWidth = constraints.maxWidth;
+                              final typeText =
+                                  workout.type == WorkoutType.personalized
+                                      ? "Personalizado"
+                                      : "Reto";
+                              final useAbbreviation = availableWidth < 220;
+
+                              return Row(
+                                children: [
+                                  Tooltip(
+                                    message: typeText,
+                                    child: Text(
+                                      useAbbreviation &&
+                                              workout.type ==
+                                                  WorkoutType.personalized
+                                          ? "Personal"
+                                          : typeText,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color:
+                                            workout.type ==
+                                                    WorkoutType.personalized
+                                                ? Colors.purpleAccent
+                                                : Colors.blueAccent,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    width: 2,
+                                    height: 2,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.fitness_center,
+                                    size: 10,
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Flexible(
+                                    child: Text(
+                                      workout.category,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white.withOpacity(0.6),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    width: 2,
+                                    height: 2,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.timer_outlined,
+                                    size: 10,
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '${workout.durationMinutes}m',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white.withOpacity(0.6),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -626,23 +657,28 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                                 imageUrl: workout.imageUrl,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: const Color(0xFF121212),
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                                placeholder:
+                                    (context, url) => Container(
+                                      color: const Color(0xFF121212),
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white70,
+                                              ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  color: const Color(0xFF121212),
-                                  child: const Icon(
-                                    Icons.image_not_supported_outlined,
-                                    color: Colors.white30,
-                                    size: 28,
-                                  ),
-                                ),
+                                errorWidget:
+                                    (context, url, error) => Container(
+                                      color: const Color(0xFF121212),
+                                      child: const Icon(
+                                        Icons.image_not_supported_outlined,
+                                        color: Colors.white30,
+                                        size: 28,
+                                      ),
+                                    ),
                               ),
                             ),
                           ),
@@ -667,9 +703,9 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                                 children: [
                                   Expanded(
                                     child: _buildStat(
-                                        Icons.timer_outlined,
-                                        '${workout.durationMinutes} min',
-                                        'Duración'
+                                      Icons.timer_outlined,
+                                      '${workout.durationMinutes} min',
+                                      'Duración',
                                     ),
                                   ),
                                   Container(
@@ -679,9 +715,9 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                                   ),
                                   Expanded(
                                     child: _buildStat(
-                                        Icons.local_fire_department_outlined,
-                                        '${workout.estimatedCalories} kcal',
-                                        'Calorías'
+                                      Icons.local_fire_department_outlined,
+                                      '${workout.estimatedCalories} kcal',
+                                      'Calorías',
                                     ),
                                   ),
                                 ],
@@ -699,10 +735,11 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => WorkoutDetailScreen(
-                                            workout: workout,
-                                            onStart: () {},
-                                          ),
+                                          builder:
+                                              (context) => WorkoutDetailScreen(
+                                                workout: workout,
+                                                onStart: () {},
+                                              ),
                                         ),
                                       );
                                     },
@@ -710,7 +747,9 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                                       backgroundColor: Colors.white,
                                       foregroundColor: Colors.black,
                                       elevation: 0,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(6),
                                       ),
@@ -729,10 +768,11 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => WorkoutDetailScreen(
-                                        workout: workout,
-                                        onStart: () {},
-                                      ),
+                                      builder:
+                                          (context) => WorkoutDetailScreen(
+                                            workout: workout,
+                                            onStart: () {},
+                                          ),
                                     ),
                                   );
                                 }),
@@ -775,10 +815,7 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
-            fontSize: 11,
-          ),
+          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
           textAlign: TextAlign.center,
         ),
       ],
@@ -802,7 +839,6 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
       ),
     );
   }
-
 
   Widget _buildIconButton(IconData icon, VoidCallback onPressed) {
     return Container(

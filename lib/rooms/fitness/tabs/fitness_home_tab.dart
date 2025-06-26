@@ -749,73 +749,94 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
 
   // Keep all existing methods
   Widget _buildWelcomeBanner(BuildContext context) {
-    // Existing implementation
+    final roomName = widget.roomData['name'] ?? 'Fitness';
+    final String shortDescription = widget.roomData['shortDescription'] ?? 'Tu espacio personal para transformar tu cuerpo y mente';
+    final String longDescription = widget.roomData['longDescription'] ?? shortDescription;
+    final roomImageUrl = widget.roomData['.'];
+
+    // Responsive values
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenWidth < 360;
+    final isMediumScreen = screenWidth >= 360 && screenWidth < 600;
+    final isLargeScreen = screenWidth >= 600;
+
+    // Dynamic values based on screen size
+    final bannerHeight = isSmallScreen ? 200.0 : (isMediumScreen ? 220.0 : 240.0);
+    final expandedHeight = isSmallScreen ? 280.0 : (isMediumScreen ? 320.0 : 360.0);
+    final titleFontSize = isSmallScreen ? 22.0 : (isMediumScreen ? 26.0 : 28.0);
+    final descriptionFontSize = isSmallScreen ? 12.0 : 13.0;
+    final buttonHeight = isSmallScreen ? 36.0 : 40.0;
+    final buttonFontSize = isSmallScreen ? 11.0 : 12.0;
+    final horizontalPadding = isSmallScreen ? 12.0 : 16.0;
+    final verticalPadding = isSmallScreen ? 14.0 : 18.0;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.fromLTRB(horizontalPadding, 12, horizontalPadding, 8),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.purple.shade800, Colors.blue.shade700],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade800,
+          width: 1,
         ),
-        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '¡Bienvenido a ${widget.roomData['name']}!',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.roomData['description'] ??
-                'Tu espacio para estar en forma y saludable',
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.white.withOpacity(0.9),
-            ),
-          ),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: () => widget.navigateToSection('workouts'),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: [
+            // Background image with overlay
+            if (roomImageUrl != null)
+              Positioned.fill(
+                child: CachedNetworkImage(
+                  imageUrl: roomImageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(color: Colors.black),
+                  errorWidget: (context, url, error) => Container(color: Colors.black),
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text(
-                    'Empezar entrenamiento',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
+
+            // Gradient overlay
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.5),
+                      Colors.black.withOpacity(0.85),
+                    ],
+                    stops: const [0.1, 1.0],
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.play_arrow_rounded, color: Colors.white),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+
+            // Content
+            _BannerContent(
+              roomName: roomName,
+              shortDescription: shortDescription,
+              longDescription: longDescription,
+              navigateToSection: widget.navigateToSection,
+              bannerHeight: bannerHeight,
+              expandedHeight: expandedHeight,
+              titleFontSize: titleFontSize,
+              descriptionFontSize: descriptionFontSize,
+              buttonHeight: buttonHeight,
+              buttonFontSize: buttonFontSize,
+              verticalPadding: verticalPadding,
+              isSmallScreen: isSmallScreen,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -854,12 +875,12 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
         // Stream builder to get the latest posts
         StreamBuilder<QuerySnapshot>(
           stream:
-          _firestore
-              .collection('posts')
-              .where('roomId', isEqualTo: widget.roomData['id'])
-              .orderBy('createdAt', descending: true)
-              .limit(2)
-              .snapshots(),
+              _firestore
+                  .collection('posts')
+                  .where('roomId', isEqualTo: widget.roomData['id'])
+                  .orderBy('createdAt', descending: true)
+                  .limit(2)
+                  .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -918,92 +939,101 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
             }
 
             return Column(
-              children: posts.map((doc) {
-                final postId = doc.id;
-                final roomId = widget.roomData['id'] as String? ?? '';
-                final postData = doc.data() as Map<String, dynamic>;
-                final isRepost = postData['isRepost'] == true;
+              children:
+                  posts.map((doc) {
+                    final postId = doc.id;
+                    final roomId = widget.roomData['id'] as String? ?? '';
+                    final postData = doc.data() as Map<String, dynamic>;
+                    final isRepost = postData['isRepost'] == true;
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (isRepost)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 24, right: 24, bottom: 4),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.green.withOpacity(0.2),
-                                      Colors.teal.withOpacity(0.2),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isRepost)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 24,
+                                right: 24,
+                                bottom: 4,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.green.withOpacity(0.2),
+                                          Colors.teal.withOpacity(0.2),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    child: Icon(
+                                      Icons.repeat_rounded,
+                                      size: 16,
+                                      color: Colors.greenAccent.shade400,
+                                    ),
                                   ),
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                child: Icon(
-                                  Icons.repeat_rounded,
-                                  size: 16,
-                                  color: Colors.greenAccent.shade400,
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text.rich(
+                                      TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text:
+                                                postData['userData']?['name'] ??
+                                                'Usuario',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          TextSpan(
+                                            text: ' reposteó esta publicación',
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(
+                                                0.7,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          Container(
+                            margin: EdgeInsets.symmetric(
+                              horizontal: isRepost ? 12 : 16,
+                              vertical: 0,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                child: CommunityPost(
+                                  postId: postId,
+                                  roomId: roomId,
+                                  showFullContent: true,
+                                  onCommentAdded: () {},
+                                  onLikeRemoved: () {},
+                                  autoShowComments: false,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text: postData['userData']?['name'] ?? 'Usuario',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      TextSpan(
-                                        text: ' reposteó esta publicación',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.7),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal: isRepost ? 12 : 16,
-                          vertical: 0,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                            child: CommunityPost(
-                              postId: postId,
-                              roomId: roomId,
-                              showFullContent: true,
-                              onCommentAdded: () {},
-                              onLikeRemoved: () {},
-                              autoShowComments: false,
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             );
           },
         ),
@@ -1042,7 +1072,8 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PostDetailPage(postId: postId, roomId: roomId),
+                builder:
+                    (context) => PostDetailPage(postId: postId, roomId: roomId),
               ),
             );
           },
@@ -1053,7 +1084,11 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
               children: [
                 if (isRepost)
                   Padding(
-                    padding: const EdgeInsets.only(left: 24, right: 24, bottom: 4),
+                    padding: const EdgeInsets.only(
+                      left: 24,
+                      right: 24,
+                      bottom: 4,
+                    ),
                     child: Row(
                       children: [
                         Container(
@@ -1122,9 +1157,13 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                             radius: 20,
                             backgroundImage: CachedNetworkImageProvider(avatar),
                             backgroundColor: Colors.grey[800],
-                            child: avatar.isEmpty || avatar.contains('ui-avatars')
-                                ? const Icon(Icons.person, color: Colors.white)
-                                : null,
+                            child:
+                                avatar.isEmpty || avatar.contains('ui-avatars')
+                                    ? const Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                    )
+                                    : null,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -1158,7 +1197,10 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                       const SizedBox(height: 12),
                       Text(
                         content,
-                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
                       ),
 
                       // Images section
@@ -1173,9 +1215,15 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                       Row(
                         children: [
                           _buildInteractionButton(
-                            icon: userLiked ? Icons.favorite : Icons.favorite_border,
+                            icon:
+                                userLiked
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
                             label: likes.toString(),
-                            iconColor: userLiked ? Colors.red : Colors.white.withOpacity(0.7),
+                            iconColor:
+                                userLiked
+                                    ? Colors.red
+                                    : Colors.white.withOpacity(0.7),
                             onTap: () {
                               _toggleLike(postId, userLiked);
                             },
@@ -1188,10 +1236,11 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => PostDetailPage(
-                                    postId: postId,
-                                    roomId: roomId,
-                                  ),
+                                  builder:
+                                      (context) => PostDetailPage(
+                                        postId: postId,
+                                        roomId: roomId,
+                                      ),
                                 ),
                               );
                             },
@@ -1298,5 +1347,285 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Error al actualizar like')));
     }
+  }
+}
+
+class _BannerContent extends StatefulWidget {
+  final String roomName;
+  final String shortDescription;
+  final String longDescription;
+  final Function(String) navigateToSection;
+  final double bannerHeight;
+  final double expandedHeight;
+  final double titleFontSize;
+  final double descriptionFontSize;
+  final double buttonHeight;
+  final double buttonFontSize;
+  final double verticalPadding;
+  final bool isSmallScreen;
+
+  const _BannerContent({
+    required this.roomName,
+    required this.shortDescription,
+    required this.longDescription,
+    required this.navigateToSection,
+    required this.bannerHeight,
+    required this.expandedHeight,
+    required this.titleFontSize,
+    required this.descriptionFontSize,
+    required this.buttonHeight,
+    required this.buttonFontSize,
+    required this.verticalPadding,
+    required this.isSmallScreen,
+  });
+
+  @override
+  State<_BannerContent> createState() => _BannerContentState();
+}
+
+class _BannerContentState extends State<_BannerContent> {
+  bool isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: isExpanded ? widget.expandedHeight : widget.bannerHeight,
+      padding: EdgeInsets.all(widget.verticalPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Room type pill
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.isSmallScreen ? 10 : 12,
+              vertical: widget.isSmallScreen ? 4 : 5,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade900,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade600, width: 0.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              "FITNESS",
+              style: TextStyle(
+                fontSize: widget.isSmallScreen ? 9 : 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 0.7,
+              ),
+            ),
+          ),
+
+          SizedBox(height: widget.isSmallScreen ? 12 : 16),
+
+          // Room name
+          Text(
+            widget.roomName,
+            style: TextStyle(
+              fontSize: widget.titleFontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              height: 1.1,
+              letterSpacing: -0.5,
+              shadows: const [
+                Shadow(
+                  color: Colors.black54,
+                  blurRadius: 3,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: widget.isSmallScreen ? 8 : 10),
+
+          // Description section
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: AnimatedCrossFade(
+                    firstChild: Text(
+                      widget.longDescription,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: widget.descriptionFontSize,
+                        height: 1.4,
+                        color: Colors.white.withOpacity(0.85),
+                      ),
+                    ),
+                    secondChild: Scrollbar(
+                      radius: const Radius.circular(8),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          widget.longDescription,
+                          style: TextStyle(
+                            fontSize: widget.descriptionFontSize,
+                            height: 1.4,
+                            color: Colors.white.withOpacity(0.85),
+                          ),
+                        ),
+                      ),
+                    ),
+                    crossFadeState: isExpanded
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 200),
+                  ),
+                ),
+
+                // Ver más/menos button
+                if (widget.longDescription.length > 100)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          isExpanded = !isExpanded;
+                        });
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isExpanded ? "Ver menos" : "Ver más",
+                            style: TextStyle(
+                              color: Colors.blue.shade300,
+                              fontWeight: FontWeight.w500,
+                              fontSize: widget.descriptionFontSize - 1,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                            color: Colors.blue.shade300,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: widget.isSmallScreen ? 10 : 14),
+
+          // Buttons
+          Row(
+            children: [
+              // Start button
+              Expanded(
+                flex: widget.isSmallScreen ? 1 : 2,
+                child: Container(
+                  height: widget.buttonHeight,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.white, Colors.grey.shade100],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => widget.navigateToSection('routines'),
+                      child: Center(
+                        child: Text(
+                          'EMPEZAR',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: widget.buttonFontSize,
+                            letterSpacing: 0.7,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              // Request routine button
+              Expanded(
+                flex: widget.isSmallScreen ? 2 : 3,
+                child: Container(
+                  height: widget.buttonHeight,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.grey.shade700,
+                        Colors.grey.shade800,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.grey.shade600,
+                      width: 0.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Próximamente: Solicitud de rutina personalizada'),
+                          ),
+                        );
+                      },
+                      child: Center(
+                        child: FittedBox(
+                          child: Text(
+                            'SOLICITAR RUTINA',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: widget.buttonFontSize,
+                              letterSpacing: 0.7,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

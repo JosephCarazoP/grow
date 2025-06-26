@@ -10,11 +10,8 @@ class ChatListScreen extends StatefulWidget {
   final String roomId;
   final String userId;
 
-  const ChatListScreen({
-    Key? key,
-    required this.roomId,
-    required this.userId,
-  }) : super(key: key);
+  const ChatListScreen({Key? key, required this.roomId, required this.userId})
+    : super(key: key);
 
   @override
   State<ChatListScreen> createState() => _ChatListScreenState();
@@ -26,7 +23,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
   List<Map<String, dynamic>> chatList = [];
   bool _isLoadingMembers = false;
   List<Map<String, dynamic>> _roomMembers = [];
-
 
   @override
   void initState() {
@@ -41,14 +37,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
     });
 
     try {
-      print('Loading chats for user: ${widget.userId} in room: ${widget.roomId}');
+      print(
+        'Loading chats for user: ${widget.userId} in room: ${widget.roomId}',
+      );
 
       // Get all chats where the current user is a participant
-      final chatQuery = await _firestore
-          .collection('chats')
-          .where('participants', arrayContains: widget.userId)
-          .where('roomId', isEqualTo: widget.roomId)
-          .get();
+      final chatQuery =
+          await _firestore
+              .collection('chats')
+              .where('participants', arrayContains: widget.userId)
+              .where('roomId', isEqualTo: widget.roomId)
+              .get();
 
       print('Found ${chatQuery.docs.length} chats in the initial query');
 
@@ -60,7 +59,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
         // Verificar si el usuario actual ha eliminado este chat
         List<String> deletedBy = [];
-        if (chatData.containsKey('deletedBy') && chatData['deletedBy'] is List) {
+        if (chatData.containsKey('deletedBy') &&
+            chatData['deletedBy'] is List) {
           deletedBy = List<String>.from(chatData['deletedBy']);
           print('Chat has deletedBy: $deletedBy');
         }
@@ -74,7 +74,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
         if (chatData.containsKey('fullyDeleted') &&
             chatData['fullyDeleted'] == true &&
             deletedBy.contains(widget.userId)) {
-          print('Skipping chat ${chatDoc.id} - fully deleted and deleted by current user');
+          print(
+            'Skipping chat ${chatDoc.id} - fully deleted and deleted by current user',
+          );
           continue;
         }
 
@@ -83,9 +85,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
         // Filter out current user to get the other participant
         participants.remove(widget.userId);
-        String otherUserId = participants.isNotEmpty
-            ? participants.first
-            : 'unknown';
+        String otherUserId =
+            participants.isNotEmpty ? participants.first : 'unknown';
 
         print('Other user ID: $otherUserId');
 
@@ -95,8 +96,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
         // Intentar obtener información del participante desde el documento del chat
         if (chatData.containsKey('participantInfo') &&
             chatData['participantInfo'] is Map) {
-
-          final participantInfo = chatData['participantInfo'] as Map<String, dynamic>;
+          final participantInfo =
+              chatData['participantInfo'] as Map<String, dynamic>;
 
           // Intentar obtener información del otro usuario
           if (participantInfo.containsKey(otherUserId)) {
@@ -104,52 +105,60 @@ class _ChatListScreenState extends State<ChatListScreen> {
             if (otherUserInfo is Map<String, dynamic>) {
               otherUserName = otherUserInfo['name'] ?? 'Usuario';
               otherUserPhoto = otherUserInfo['photo'] ?? '';
-              print('Encontrada info del usuario en participantInfo: $otherUserName');
+              print(
+                'Encontrada info del usuario en participantInfo: $otherUserName',
+              );
             }
           }
 
           // Si no se encuentra información o está incompleta, buscar en users
           if (otherUserName == 'Usuario' || otherUserPhoto.isEmpty) {
             print('Buscando información adicional del usuario: $otherUserId');
-            final userDoc = await _firestore.collection('users')
-                .doc(otherUserId)
-                .get();
+            final userDoc =
+                await _firestore.collection('users').doc(otherUserId).get();
 
             if (userDoc.exists) {
               final userData = userDoc.data() ?? {};
 
               if (otherUserName == 'Usuario') {
-                otherUserName = userData['displayName'] ??
+                otherUserName =
+                    userData['displayName'] ??
                     userData['username'] ??
-                    userData['name'] ?? 'Usuario';
+                    userData['name'] ??
+                    'Usuario';
               }
 
               if (otherUserPhoto.isEmpty) {
-                otherUserPhoto = userData['photoURL'] ??
+                otherUserPhoto =
+                    userData['photoURL'] ??
                     userData['photoUrl'] ??
-                    userData['profilePic'] ?? '';
+                    userData['profilePic'] ??
+                    '';
               }
 
               // Actualizar el documento del chat con la nueva información
-              Map<String, dynamic> updatedParticipantInfo = {...participantInfo};
+              Map<String, dynamic> updatedParticipantInfo = {
+                ...participantInfo,
+              };
               updatedParticipantInfo[otherUserId] = {
                 'name': otherUserName,
-                'photo': otherUserPhoto
+                'photo': otherUserPhoto,
               };
 
               await _firestore.collection('chats').doc(chatDoc.id).update({
-                'participantInfo': updatedParticipantInfo
+                'participantInfo': updatedParticipantInfo,
               });
 
-              print('Actualizada información del usuario en el chat: $otherUserName');
+              print(
+                'Actualizada información del usuario en el chat: $otherUserName',
+              );
             }
           }
         } else {
           // Si el chat no tiene participantInfo, buscarlo en users y actualizar
           print('El chat no tiene participantInfo, buscando en users');
-          final userDoc = await _firestore.collection('users')
-              .doc(otherUserId)
-              .get();
+          final userDoc =
+              await _firestore.collection('users').doc(otherUserId).get();
 
           if (userDoc.exists) {
             final userData = userDoc.data() ?? {};
@@ -158,28 +167,24 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
             // Crear un nuevo campo participantInfo
             Map<String, dynamic> participantInfo = {
-              otherUserId: {
-                'name': otherUserName,
-                'photo': otherUserPhoto
-              }
+              otherUserId: {'name': otherUserName, 'photo': otherUserPhoto},
             };
 
             // También incluir la información del usuario actual
-            final currentUserDoc = await _firestore.collection('users')
-                .doc(widget.userId)
-                .get();
+            final currentUserDoc =
+                await _firestore.collection('users').doc(widget.userId).get();
 
             if (currentUserDoc.exists) {
               final currentUserData = currentUserDoc.data() ?? {};
               participantInfo[widget.userId] = {
                 'name': currentUserData['displayName'] ?? 'Usuario',
-                'photo': currentUserData['photoURL'] ?? ''
+                'photo': currentUserData['photoURL'] ?? '',
               };
             }
 
             // Actualizar el documento del chat
             await _firestore.collection('chats').doc(chatDoc.id).update({
-              'participantInfo': participantInfo
+              'participantInfo': participantInfo,
             });
 
             print('Creado campo participantInfo en el chat');
@@ -187,13 +192,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
         }
 
         // Get last message
-        final lastMessageQuery = await _firestore
-            .collection('chats')
-            .doc(chatDoc.id)
-            .collection('messages')
-            .orderBy('timestamp', descending: true)
-            .limit(1)
-            .get();
+        final lastMessageQuery =
+            await _firestore
+                .collection('chats')
+                .doc(chatDoc.id)
+                .collection('messages')
+                .orderBy('timestamp', descending: true)
+                .limit(1)
+                .get();
 
         Map<String, dynamic> lastMessageData = {};
         if (lastMessageQuery.docs.isNotEmpty) {
@@ -238,10 +244,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         backgroundColor: Colors.black,
         title: const Text(
           'Mensajes',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -258,11 +261,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : chatList.isEmpty
-          ? _buildEmptyState()
-          : _buildChatList(),
+      body:
+          isLoading
+              ? const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+              : chatList.isEmpty
+              ? _buildEmptyState()
+              : _buildChatList(),
     );
   }
 
@@ -325,8 +331,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
         final now = DateTime.now();
 
         // Check if user is admin
-        final bool isAdmin = _roomMembers.any((member) =>
-        member['id'] == chat['otherUserId'] && member['role'] == 'admin');
+        final bool isAdmin = _roomMembers.any(
+          (member) =>
+              member['id'] == chat['otherUserId'] && member['role'] == 'admin',
+        );
 
         String timeText;
         if (now.difference(dateTime).inDays == 0) {
@@ -336,7 +344,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
           timeText = '$hour:$minute';
         } else if (now.difference(dateTime).inDays < 7) {
           // This week - show day name
-          final List<String> days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+          final List<String> days = [
+            'Lun',
+            'Mar',
+            'Mié',
+            'Jue',
+            'Vie',
+            'Sáb',
+            'Dom',
+          ];
           timeText = days[dateTime.weekday - 1];
         } else {
           // Older - show date
@@ -388,9 +404,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isAdmin ?
-              Colors.blue.withOpacity(0.3) :
-              Colors.white.withOpacity(0.1)),
+              border: Border.all(
+                color:
+                    isAdmin
+                        ? Colors.blue.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.1),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.2),
@@ -408,18 +427,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ChatDetailScreen(
-                        chatId: chat['chatId'],
-                        otherUserId: chat['otherUserId'],
-                        otherUserName: chat['otherUserName'],
-                        otherUserPhoto: chat['otherUserPhoto'],
-                        currentUserId: widget.userId,
-                      ),
+                      builder:
+                          (context) => ChatDetailScreen(
+                            chatId: chat['chatId'],
+                            otherUserId: chat['otherUserId'],
+                            otherUserName: chat['otherUserName'],
+                            otherUserPhoto: chat['otherUserPhoto'],
+                            currentUserId: widget.userId,
+                          ),
                     ),
                   ).then((_) => _loadChats());
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       // Avatar with admin badge
@@ -429,16 +452,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isAdmin ?
-                                Colors.blue.withOpacity(0.4) :
-                                Colors.white.withOpacity(0.2),
+                                color:
+                                    isAdmin
+                                        ? Colors.blue.withOpacity(0.4)
+                                        : Colors.white.withOpacity(0.2),
                                 width: 2,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: isAdmin ?
-                                  Colors.blue.withOpacity(0.2) :
-                                  Colors.black.withOpacity(0.2),
+                                  color:
+                                      isAdmin
+                                          ? Colors.blue.withOpacity(0.2)
+                                          : Colors.black.withOpacity(0.2),
                                   blurRadius: 4,
                                 ),
                               ],
@@ -446,19 +471,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             child: CircleAvatar(
                               radius: 26,
                               backgroundColor: Colors.grey[800],
-                              backgroundImage: chat['otherUserPhoto'].isNotEmpty
-                                  ? CachedNetworkImageProvider(chat['otherUserPhoto'])
-                                  : null,
-                              child: chat['otherUserPhoto'].isEmpty
-                                  ? Text(
-                                chat['otherUserName'][0].toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              )
-                                  : null,
+                              backgroundImage:
+                                  chat['otherUserPhoto'].isNotEmpty
+                                      ? CachedNetworkImageProvider(
+                                        chat['otherUserPhoto'],
+                                      )
+                                      : null,
+                              child:
+                                  chat['otherUserPhoto'].isEmpty
+                                      ? Text(
+                                        chat['otherUserName'][0].toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                        ),
+                                      )
+                                      : null,
                             ),
                           ),
                           // Admin verification badge
@@ -533,15 +562,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      if (isAdmin)
-                                        const SizedBox(width: 4),
+                                      if (isAdmin) const SizedBox(width: 4),
                                       if (isAdmin)
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: Colors.blue.withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
                                           child: const Text(
                                             'Admin',
@@ -558,7 +590,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(12),
@@ -583,13 +617,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                         ? chat['lastMessage']
                                         : 'Sin mensajes',
                                     style: TextStyle(
-                                      color: chat['unreadCount'] > 0
-                                          ? Colors.white.withOpacity(0.9)
-                                          : Colors.white.withOpacity(0.6),
+                                      color:
+                                          chat['unreadCount'] > 0
+                                              ? Colors.white.withOpacity(0.9)
+                                              : Colors.white.withOpacity(0.6),
                                       fontSize: 14,
-                                      fontWeight: chat['unreadCount'] > 0
-                                          ? FontWeight.w500
-                                          : FontWeight.normal,
+                                      fontWeight:
+                                          chat['unreadCount'] > 0
+                                              ? FontWeight.w500
+                                              : FontWeight.normal,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -637,35 +673,39 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Future<bool> _showDeleteConfirmation(String chatId) async {
     return await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text(
-            '¿Eliminar chat?',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: const Text(
-            'Esta acción no se puede deshacer y eliminará todos los mensajes.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-        child: const Text('CANCELAR', style: TextStyle(color: Colors.white)),
-                    ),
-            TextButton(
-              onPressed: () {
-                _deleteChat(chatId);
-                Navigator.of(context).pop(true);
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('ELIMINAR'),
-            ),
-          ],
-        );
-      },
-    ) ?? false;
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text(
+                '¿Eliminar chat?',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: const Text(
+                'Esta acción no se puede deshacer y eliminará todos los mensajes.',
+                style: TextStyle(color: Colors.white70),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text(
+                    'CANCELAR',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _deleteChat(chatId);
+                    Navigator.of(context).pop(true);
+                  },
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('ELIMINAR'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 
   Future<void> _deleteChat(String chatId) async {
@@ -686,7 +726,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
       }
 
       // Obtener la lista de participantes
-      final List<String> participants = List<String>.from(chatData['participants'] ?? []);
+      final List<String> participants = List<String>.from(
+        chatData['participants'] ?? [],
+      );
 
       // Si todos los participantes han eliminado el chat, marcarlo como completamente eliminado
       if (deletedBy.length == participants.length) {
@@ -694,24 +736,24 @@ class _ChatListScreenState extends State<ChatListScreen> {
         await _firestore.collection('chats').doc(chatId).update({
           'deletedBy': deletedBy,
           'fullyDeleted': true,
-          'lastUpdate': FieldValue.serverTimestamp()
+          'lastUpdate': FieldValue.serverTimestamp(),
         });
-      }else {
+      } else {
         // Solo actualizar el campo deletedBy
         await _firestore.collection('chats').doc(chatId).update({
           'deletedBy': deletedBy,
-          'lastUpdate': FieldValue.serverTimestamp()
+          'lastUpdate': FieldValue.serverTimestamp(),
         });
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chat eliminado con éxito')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Chat eliminado con éxito')));
     } catch (e) {
       print('Error eliminando chat: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar chat: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al eliminar chat: $e')));
     }
   }
 
@@ -723,10 +765,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     try {
       // Obtener documento de la sala
-      final roomDoc = await FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(widget.roomId)
-          .get();
+      final roomDoc =
+          await FirebaseFirestore.instance
+              .collection('rooms')
+              .doc(widget.roomId)
+              .get();
 
       if (!roomDoc.exists) {
         print('Error: La sala con ID ${widget.roomId} no existe');
@@ -742,7 +785,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
       final String creatorId = roomData['creatorUid'] ?? '';
       final String creatorPhoto = roomData['creatorPhoto'] ?? '';
 
-      print('ID del creador: $creatorId, Foto del creador: ${creatorPhoto.isNotEmpty ? "existe" : "vacía"}');
+      print(
+        'ID del creador: $creatorId, Foto del creador: ${creatorPhoto.isNotEmpty ? "existe" : "vacía"}',
+      );
       print('Admins encontrados: ${adminsList.length}');
 
       // Set para almacenar todos los IDs de admins (incluyendo usuario actual)
@@ -772,10 +817,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
             final String memberId = '${widget.roomId}_$adminId';
             print('Buscando admin en members: $memberId');
 
-            final memberDoc = await FirebaseFirestore.instance
-                .collection('members')
-                .doc(memberId)
-                .get();
+            final memberDoc =
+                await FirebaseFirestore.instance
+                    .collection('members')
+                    .doc(memberId)
+                    .get();
 
             if (memberDoc.exists) {
               final memberData = memberDoc.data() ?? {};
@@ -784,7 +830,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
               // Intentar obtener foto de members
               if (photoUrl.isEmpty) {
                 // Intentar todos los posibles campos de foto
-                final photoFields = ['userPhoto', 'photoURL', 'photoUrl', 'profilePic', 'image'];
+                final photoFields = [
+                  'userPhoto',
+                  'photoURL',
+                  'photoUrl',
+                  'profilePic',
+                  'image',
+                ];
                 for (var field in photoFields) {
                   if (memberData.containsKey(field) &&
                       memberData[field] != null &&
@@ -803,20 +855,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
             }
 
             // 2. Si la foto aún está vacía, buscar en users
-// 2. Si la foto aún está vacía o el nombre es el default, buscar en users
+            // 2. Si la foto aún está vacía o el nombre es el default, buscar en users
             if (photoUrl.isEmpty || adminName == 'Admin sin nombre') {
               print('Intentando buscar en users: $adminId');
-              final userDoc = await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(adminId)
-                  .get();
+              final userDoc =
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(adminId)
+                      .get();
 
               if (userDoc.exists) {
                 final userData = userDoc.data() ?? {};
 
                 // Intentar obtener nombre si no lo tenemos aún
                 if (adminName == 'Admin sin nombre') {
-                  adminName = userData['displayName'] ??
+                  adminName =
+                      userData['displayName'] ??
                       userData['username'] ??
                       userData['name'] ??
                       'Admin sin nombre';
@@ -825,7 +879,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
                 // Intentar todos los posibles campos de foto solo si aún no tenemos foto
                 if (photoUrl.isEmpty) {
-                  final photoFields = ['photoURL', 'photoUrl', 'profilePic', 'photo', 'image'];
+                  final photoFields = [
+                    'photoURL',
+                    'photoUrl',
+                    'profilePic',
+                    'photo',
+                    'image',
+                  ];
                   for (var field in photoFields) {
                     if (userData.containsKey(field) &&
                         userData[field] != null &&
@@ -852,11 +912,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
         }
       }
       // Procesar miembros regulares...
-      final membersSnapshot = await FirebaseFirestore.instance
-          .collection('members')
-          .where('roomId', isEqualTo: widget.roomId)
-          .where('status', isEqualTo: 'active')
-          .get();
+      final membersSnapshot =
+          await FirebaseFirestore.instance
+              .collection('members')
+              .where('roomId', isEqualTo: widget.roomId)
+              .where('status', isEqualTo: 'active')
+              .get();
 
       print('Regular members found: ${membersSnapshot.docs.length}');
 
@@ -894,14 +955,16 @@ class _ChatListScreenState extends State<ChatListScreen> {
       // Add current user if admin but not found yet
       if (adminIds.contains(widget.userId) &&
           !_roomMembers.any((m) => m['id'] == widget.userId)) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.userId)
-            .get();
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(widget.userId)
+                .get();
 
         if (userDoc.exists) {
           final userData = userDoc.data() ?? {};
-          final String userName = userData['displayName'] ??
+          final String userName =
+              userData['displayName'] ??
               userData['username'] ??
               userData['name'] ??
               'You';
@@ -929,9 +992,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
       });
     } catch (e) {
       print('Error loading members and admins: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading members: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading members: $e')));
       setState(() {
         _isLoadingMembers = false;
       });
@@ -948,8 +1011,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
           return StatefulBuilder(
             builder: (context, setState) {
               // Separate admins and regular members
-              final admins = _roomMembers.where((m) => m['role'] == 'admin').toList();
-              final regularMembers = _roomMembers.where((m) => m['role'] != 'admin').toList();
+              final admins =
+                  _roomMembers.where((m) => m['role'] == 'admin').toList();
+              final regularMembers =
+                  _roomMembers.where((m) => m['role'] != 'admin').toList();
 
               return Dialog(
                 backgroundColor: Colors.black,
@@ -957,175 +1022,244 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 elevation: 8,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900]?.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Header
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.people_alt_rounded,
-                                      color: Colors.white,
-                                      size: 22,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      "Miembros de la sala",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.white70),
-                                  onPressed: () => Navigator.pop(dialogContext),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.white.withOpacity(0.1),
-                                    padding: const EdgeInsets.all(8),
-                                  ),
-                                ),
-                              ],
-                            ),
+                insetPadding: const EdgeInsets.all(
+                  16,
+                ), // Reducido para hacer el modal más grande
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth:
+                        MediaQuery.of(context).size.width *
+                        0.92, // Aumentado de ~85% a 92%
+                    maxHeight:
+                        MediaQuery.of(context).size.height *
+                        0.8, // Aumentado para más altura
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900]?.withOpacity(0.95),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                            width: 1,
                           ),
-
-                          // Members counter
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Header
+                            Padding(
+                              padding: const EdgeInsets.all(
+                                12,
+                              ), // Reducido de 16 a 12
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Icon(
-                                    Icons.people_outline,
-                                    size: 16,
-                                    color: Colors.white.withOpacity(0.7),
+                                  Expanded(
+                                    // Agregado Expanded
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.people_alt_rounded,
+                                          color: Colors.white,
+                                          size: 20, // Reducido de 22 a 20
+                                        ),
+                                        const SizedBox(
+                                          width: 8,
+                                        ), // Reducido de 12 a 8
+                                        Flexible(
+                                          // Agregado Flexible
+                                          child: Text(
+                                            "Miembros de la sala",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize:
+                                                  16, // Reducido de 18 a 16
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    "${_roomMembers.length} miembros en total",
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontSize: 13,
+                                  const SizedBox(
+                                    width: 8,
+                                  ), // Espacio entre secciones
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white70,
+                                      size: 18,
+                                    ), // Reducido de 24 a 18
+                                    onPressed:
+                                        () => Navigator.pop(dialogContext),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: Colors.white.withOpacity(
+                                        0.1,
+                                      ),
+                                      padding: const EdgeInsets.all(
+                                        6,
+                                      ), // Reducido de 8 a 6
+                                      minimumSize: const Size(
+                                        30,
+                                        30,
+                                      ), // Tamaño mínimo más pequeño
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
 
-                          // Divider
-                          Divider(
-                            color: Colors.white.withOpacity(0.1),
-                            height: 1,
-                          ),
-
-                          // Members List
-                          Container(
-                            constraints: BoxConstraints(
-                              maxHeight: MediaQuery.of(context).size.height * 0.6,
-                              maxWidth: double.infinity,
-                            ),
-                            child: _isLoadingMembers
-                                ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(32),
-                                child: Column(
+                            // Members counter
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
+                                    Icon(
+                                      Icons.people_outline,
+                                      size: 16,
+                                      color: Colors.white.withOpacity(0.7),
                                     ),
-                                    SizedBox(height: 16),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      'Cargando miembros...',
+                                      "${_roomMembers.length} miembros en total",
                                       style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 14,
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 13,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            )
-                                : _roomMembers.isEmpty
-                                ? _buildEmptyMembersList()
-                                : SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Admins section
-                                  if (admins.isNotEmpty) ...[
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 8, top: 8, bottom: 12),
-                                      child: Text(
-                                        "Administradores",
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.5),
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                    ...admins.map((admin) => _buildMemberTile(admin, dialogContext)),
-
-                                    // Divider between sections
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      child: Divider(
-                                        color: Colors.white.withOpacity(0.1),
-                                        height: 1,
-                                      ),
-                                    ),
-                                  ],
-
-                                  // Regular members section
-                                  if (regularMembers.isNotEmpty) ...[
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 8, top: 4, bottom: 12),
-                                      child: Text(
-                                        "Miembros",
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.5),
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                    ...regularMembers.map((member) => _buildMemberTile(member, dialogContext)),
-                                  ],
-                                ],
-                              ),
                             ),
-                          ),
-                        ],
+
+                            // Divider
+                            Divider(
+                              color: Colors.white.withOpacity(0.1),
+                              height: 1,
+                            ),
+
+                            // Members List
+                            Expanded(
+                              // Cambiado de Container con constraints a Expanded
+                              child:
+                                  _isLoadingMembers
+                                      ? const Center(
+                                        child: Padding(
+                                          padding: EdgeInsets.all(32),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              CircularProgressIndicator(
+                                                color: Colors.white,
+                                              ),
+                                              SizedBox(height: 16),
+                                              Text(
+                                                'Cargando miembros...',
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                      : _roomMembers.isEmpty
+                                      ? _buildEmptyMembersList()
+                                      : SingleChildScrollView(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Admins section
+                                            if (admins.isNotEmpty) ...[
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  left: 8,
+                                                  top: 8,
+                                                  bottom: 12,
+                                                ),
+                                                child: Text(
+                                                  "Administradores",
+                                                  style: TextStyle(
+                                                    color: Colors.white
+                                                        .withOpacity(0.5),
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                              ...admins.map(
+                                                (admin) => _buildMemberTile(
+                                                  admin,
+                                                  dialogContext,
+                                                ),
+                                              ),
+
+                                              // Divider between sections
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 16,
+                                                    ),
+                                                child: Divider(
+                                                  color: Colors.white
+                                                      .withOpacity(0.1),
+                                                  height: 1,
+                                                ),
+                                              ),
+                                            ],
+
+                                            // Regular members section
+                                            if (regularMembers.isNotEmpty) ...[
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  left: 8,
+                                                  top: 4,
+                                                  bottom: 12,
+                                                ),
+                                                child: Text(
+                                                  "Miembros",
+                                                  style: TextStyle(
+                                                    color: Colors.white
+                                                        .withOpacity(0.5),
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                              ...regularMembers.map(
+                                                (member) => _buildMemberTile(
+                                                  member,
+                                                  dialogContext,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1138,7 +1272,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
     });
   }
 
-  Widget _buildMemberTile(Map<String, dynamic> member, BuildContext dialogContext) {
+  Widget _buildMemberTile(
+    Map<String, dynamic> member,
+    BuildContext dialogContext,
+  ) {
     final bool isAdmin = member['role'] == 'admin';
     final String memberName = member['name'] ?? 'Usuario sin nombre';
     final String memberId = member['id'] ?? '';
@@ -1150,9 +1287,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         borderRadius: BorderRadius.circular(16),
         color: Colors.white.withOpacity(0.03),
         border: Border.all(
-          color: isAdmin
-              ? Colors.white.withOpacity(0.1)
-              : Colors.transparent,
+          color: isAdmin ? Colors.white.withOpacity(0.1) : Colors.transparent,
         ),
       ),
       child: Material(
@@ -1174,31 +1309,38 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 Stack(
                   children: [
                     Container(
-                      padding: isAdmin ? const EdgeInsets.all(2) : EdgeInsets.zero,
+                      padding:
+                          isAdmin ? const EdgeInsets.all(2) : EdgeInsets.zero,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: isAdmin
-                            ? Border.all(color: Colors.white.withOpacity(0.2), width: 1.5)
-                            : null,
+                        border:
+                            isAdmin
+                                ? Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1.5,
+                                )
+                                : null,
                       ),
                       child: CircleAvatar(
                         radius: 24,
                         backgroundColor: Colors.grey[900],
-                        backgroundImage: memberPhoto.isNotEmpty
-                            ? CachedNetworkImageProvider(memberPhoto)
-                            : null,
-                        child: memberPhoto.isEmpty
-                            ? Text(
-                          memberName.isNotEmpty
-                              ? memberName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        )
-                            : null,
+                        backgroundImage:
+                            memberPhoto.isNotEmpty
+                                ? CachedNetworkImageProvider(memberPhoto)
+                                : null,
+                        child:
+                            memberPhoto.isEmpty
+                                ? Text(
+                                  memberName.isNotEmpty
+                                      ? memberName[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                )
+                                : null,
                       ),
                     ),
                     if (isAdmin)
@@ -1210,7 +1352,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           decoration: BoxDecoration(
                             color: Colors.black,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.1),
+                            ),
                           ),
                           child: const Icon(
                             Icons.verified,
@@ -1230,7 +1374,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         memberName,
                         style: TextStyle(
                           color: Colors.white,
-                          fontWeight: isAdmin ? FontWeight.bold : FontWeight.w500,
+                          fontWeight:
+                              isAdmin ? FontWeight.bold : FontWeight.w500,
                           fontSize: 16,
                         ),
                       ),
@@ -1249,9 +1394,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isAdmin
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.white.withOpacity(0.05),
+                    color:
+                        isAdmin
+                            ? Colors.white.withOpacity(0.1)
+                            : Colors.white.withOpacity(0.05),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1328,8 +1474,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue.shade700,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ],
@@ -1337,7 +1488,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
       ),
     );
   }
-
 
   void _startChatWithMember(Map<String, dynamic> member) async {
     final String memberId = member['id'] ?? '';
@@ -1355,7 +1505,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
       // Primero intentar obtener los datos de _roomMembers si el usuario está ahí
       final currentMember = _roomMembers.firstWhere(
-            (m) => m['id'] == widget.userId,
+        (m) => m['id'] == widget.userId,
         orElse: () => {},
       );
 
@@ -1366,33 +1516,42 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
       // Si no se encontró en _roomMembers, buscar en users
       if (currentUserName.isEmpty) {
-        final currentUserDoc = await _firestore.collection('users').doc(widget.userId).get();
+        final currentUserDoc =
+            await _firestore.collection('users').doc(widget.userId).get();
         final currentUserData = currentUserDoc.data() ?? {};
-        currentUserName = currentUserData['displayName'] ??
+        currentUserName =
+            currentUserData['displayName'] ??
             currentUserData['username'] ??
-            currentUserData['name'] ?? 'Usuario';
-        currentUserPhoto = currentUserData['photoURL'] ??
+            currentUserData['name'] ??
+            'Usuario';
+        currentUserPhoto =
+            currentUserData['photoURL'] ??
             currentUserData['photoUrl'] ??
-            currentUserData['profilePic'] ?? '';
+            currentUserData['profilePic'] ??
+            '';
       }
 
       // Find all possible chats between these users (including deleted ones)
-      final existingChatQuery = await _firestore
-          .collection('chats')
-          .where('participants', arrayContains: widget.userId)
-          .where('roomId', isEqualTo: widget.roomId)
-          .get();
+      final existingChatQuery =
+          await _firestore
+              .collection('chats')
+              .where('participants', arrayContains: widget.userId)
+              .where('roomId', isEqualTo: widget.roomId)
+              .get();
 
       String chatId = '';
       bool needToRestore = false;
 
       // Check all existing chats
       for (var doc in existingChatQuery.docs) {
-        List<String> participants = List<String>.from(doc.data()['participants']);
+        List<String> participants = List<String>.from(
+          doc.data()['participants'],
+        );
         if (participants.contains(memberId)) {
           // Chat exists, check if it was deleted
           List<String> deletedBy = [];
-          if (doc.data().containsKey('deletedBy') && doc.data()['deletedBy'] is List) {
+          if (doc.data().containsKey('deletedBy') &&
+              doc.data()['deletedBy'] is List) {
             deletedBy = List<String>.from(doc.data()['deletedBy']);
           }
 
@@ -1400,7 +1559,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
             // This chat was deleted by current user, but we can restore it
             chatId = doc.id;
             needToRestore = true;
-          } else if (!doc.data().containsKey('fullyDeleted') || doc.data()['fullyDeleted'] != true) {
+          } else if (!doc.data().containsKey('fullyDeleted') ||
+              doc.data()['fullyDeleted'] != true) {
             // Active chat found
             chatId = doc.id;
           }
@@ -1414,15 +1574,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
           'fullyDeleted': false,
           'lastUpdate': FieldValue.serverTimestamp(),
           'participantInfo': {
-            widget.userId: {
-              'name': currentUserName,
-              'photo': currentUserPhoto,
-            },
-            memberId: {
-              'name': memberName,
-              'photo': memberPhoto,
-            }
-          }
+            widget.userId: {'name': currentUserName, 'photo': currentUserPhoto},
+            memberId: {'name': memberName, 'photo': memberPhoto},
+          },
         });
         print('Restored and updated chat info: $chatId');
       } else if (chatId.isEmpty) {
@@ -1434,15 +1588,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
           'createdAt': FieldValue.serverTimestamp(),
           'lastUpdate': FieldValue.serverTimestamp(),
           'participantInfo': {
-            widget.userId: {
-              'name': currentUserName,
-              'photo': currentUserPhoto,
-            },
-            memberId: {
-              'name': memberName,
-              'photo': memberPhoto,
-            }
-          }
+            widget.userId: {'name': currentUserName, 'photo': currentUserPhoto},
+            memberId: {'name': memberName, 'photo': memberPhoto},
+          },
         });
         chatId = newChatRef.id;
         print('Created new chat with complete participant info: $chatId');
@@ -1456,20 +1604,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ChatDetailScreen(
-            chatId: chatId,
-            otherUserId: memberId,
-            otherUserName: memberName,
-            otherUserPhoto: memberPhoto,
-            currentUserId: widget.userId,
-          ),
+          builder:
+              (context) => ChatDetailScreen(
+                chatId: chatId,
+                otherUserId: memberId,
+                otherUserName: memberName,
+                otherUserPhoto: memberPhoto,
+                currentUserId: widget.userId,
+              ),
         ),
       ).then((_) => _loadChats());
     } catch (e) {
       print('Error starting chat: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al iniciar el chat: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al iniciar el chat: $e')));
       setState(() {
         isLoading = false;
       });

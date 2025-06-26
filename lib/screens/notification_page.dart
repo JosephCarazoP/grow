@@ -1180,531 +1180,536 @@ class _MonthlyEarningsTabState extends State<MonthlyEarningsTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Selector de mes y año mejorado
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Filtrar por periodo',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  // Dropdown de mes con estilo mejorado
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Mes',
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        value: _selectedMonth,
-                        items:
-                            _months.map((month) {
-                              return DropdownMenuItem<int>(
-                                value: month['value'],
-                                child: Text(month['label']),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedMonth = value!;
-                          });
-                        },
-                        icon: const Icon(Icons.calendar_month),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Dropdown de año con estilo mejorado
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Año',
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        value: _selectedYear,
-                        items:
-                            _years.map((year) {
-                              return DropdownMenuItem<int>(
-                                value: year,
-                                child: Text(year.toString()),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedYear = value!;
-                          });
-                        },
-                        icon: const Icon(Icons.calendar_today),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        // Tarjeta de resumen mensual mejorada
-        Card(
-          elevation: 6,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Selector de mes y año mejorado
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.purple, Colors.blue],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(2),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Filtrar por periodo',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Ganancias Totales',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_months.firstWhere((m) => m['value'] == _selectedMonth)['label']} $_selectedYear',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
+                    // Dropdown de mes con estilo mejorado
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.blueAccent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                        child: DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            labelText: 'Mes',
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            border: InputBorder.none,
                           ),
-                          child: const Icon(
-                            Icons.bar_chart,
-                            color: Colors.blueAccent,
-                            size: 28,
-                          ),
+                          value: _selectedMonth,
+                          items: _months.map((month) {
+                            return DropdownMenuItem<int>(
+                              value: month['value'],
+                              child: Text(month['label']),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedMonth = value!;
+                            });
+                          },
+                          icon: const Icon(Icons.calendar_month),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    StreamBuilder<double>(
-                      stream: _calculateMonthlyEarnings(
-                        _selectedMonth,
-                        _selectedYear,
                       ),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const SizedBox(
-                            height: 48,
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-
-                        final earnings = snapshot.data ?? 0.0;
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '₡',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Dropdown de año con estilo mejorado
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            labelText: 'Año',
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
                             ),
-                            Text(
-                              earnings.toStringAsFixed(2),
-                              style: const TextStyle(
-                                fontSize: 42,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -1,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                            border: InputBorder.none,
+                          ),
+                          value: _selectedYear,
+                          items: _years.map((year) {
+                            return DropdownMenuItem<int>(
+                              value: year,
+                              child: Text(year.toString()),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedYear = value!;
+                            });
+                          },
+                          icon: const Icon(Icons.calendar_today),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
           ),
-        ),
 
-        // Formulario para añadir ingresos manuales mejorado
-        Card(
-          elevation: 4,
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ExpansionTile(
-            title: const Text(
-              'Agregar Ingreso Manual',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          // Tarjeta de resumen mensual mejorada
+          Card(
+            elevation: 6,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            leading: const Icon(Icons.add_circle, color: Colors.green),
-            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            children: [
-              TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Monto (₡)',
-                  hintText: '50000',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.blue, width: 2),
-                  ),
-                  prefixIcon: const Icon(Icons.confirmation_number),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.blue],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(20),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Descripción',
-                  hintText: 'Ingreso por servicio adicional',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.blue, width: 2),
-                  ),
-                  prefixIcon: const Icon(Icons.description),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _addManualIncome,
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: const Text(
-                    'Agregar Ingreso',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Título de transacciones
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: Row(
-            children: [
-              const Icon(Icons.receipt_long, size: 18, color: Colors.grey),
-              const SizedBox(width: 8),
-              Text(
-                'Transacciones de ${_months.firstWhere((m) => m['value'] == _selectedMonth)['label']}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Lista de transacciones mejorada
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream:
-                FirebaseFirestore.instance
-                    .collection('payments')
-                    .where('status', isEqualTo: 'received')
-                    .where('year', isEqualTo: _selectedYear)
-                    .where('month', isEqualTo: _selectedMonth)
-                    .orderBy('timestamp', descending: true)
-                    .snapshots(),
-            builder: (context, paymentSnapshot) {
-              if (paymentSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              return StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection('manual_earnings')
-                        .where('year', isEqualTo: _selectedYear)
-                        .where('month', isEqualTo: _selectedMonth)
-                        .orderBy('timestamp', descending: true)
-                        .snapshots(),
-                builder: (context, manualSnapshot) {
-                  if (manualSnapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  // Combinar ambos tipos de ingresos
-                  List<Map<String, dynamic>> allTransactions = [];
-
-                  if (paymentSnapshot.hasData) {
-                    for (var doc in paymentSnapshot.data!.docs) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      allTransactions.add({
-                        ...data,
-                        'id': doc.id,
-                        'type': 'payment',
-                      });
-                    }
-                  }
-
-                  if (manualSnapshot.hasData) {
-                    for (var doc in manualSnapshot.data!.docs) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      allTransactions.add({
-                        ...data,
-                        'id': doc.id,
-                        'type': 'manual',
-                      });
-                    }
-                  }
-
-                  // Ordenar por fecha (más reciente primero)
-                  allTransactions.sort((a, b) {
-                    final aTime = a['timestamp'] as Timestamp?;
-                    final bTime = b['timestamp'] as Timestamp?;
-                    if (aTime == null) return 1;
-                    if (bTime == null) return -1;
-                    return bTime.compareTo(aTime);
-                  });
-
-                  if (allTransactions.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            Icons.receipt_long,
-                            size: 64,
-                            color: Colors.grey[300],
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ganancias Totales',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${_months.firstWhere((m) => m['value'] == _selectedMonth)['label']} $_selectedYear',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No hay transacciones en ${_months.firstWhere((m) => m['value'] == _selectedMonth)['label']} $_selectedYear',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blueAccent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.bar_chart,
+                              color: Colors.blueAccent,
+                              size: 28,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: allTransactions.length,
-                    itemBuilder: (context, index) {
-                      final transaction = allTransactions[index];
-                      final isManual = transaction['type'] == 'manual';
-                      final amount = transaction['amount'] ?? 0;
-                      final timestamp = transaction['timestamp'] as Timestamp?;
-                      final transactionId = transaction['id'] ?? '';
-
-                      // Formato para fecha más legible
-                      String dateFormatted =
-                          timestamp != null
-                              ? _formatDate(timestamp.toDate())
-                              : 'Fecha no disponible';
-
-                      return Dismissible(
-                        // Solo permitir deslizar para eliminar si es un ingreso manual
-                        key: Key(transactionId),
-                        direction:
-                            isManual
-                                ? DismissDirection.endToStart
-                                : DismissDirection.none,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.delete, color: Colors.white),
+                      const SizedBox(height: 20),
+                      StreamBuilder<double>(
+                        stream: _calculateMonthlyEarnings(
+                          _selectedMonth,
+                          _selectedYear,
                         ),
-                        confirmDismiss:
-                            isManual
-                                ? (direction) => _confirmDelete(context)
-                                : null,
-                        onDismissed:
-                            isManual
-                                ? (direction) =>
-                                    _deleteManualIncome(transactionId)
-                                : null,
-                        child: Card(
-                          elevation: 2,
-                          margin: const EdgeInsets.symmetric(vertical: 6),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 48,
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
+                          final earnings = snapshot.data ?? 0.0;
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '₡',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              Text(
+                                earnings.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -1,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Formulario para añadir ingresos manuales mejorado
+          Card(
+            elevation: 4,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ExpansionTile(
+              title: const Text(
+                'Agregar Ingreso Manual',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              leading: const Icon(Icons.add_circle, color: Colors.green),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Monto (₡)',
+                        hintText: '50000',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                        ),
+                        prefixIcon: const Icon(Icons.confirmation_number),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: InputDecoration(
+                        labelText: 'Descripción',
+                        hintText: 'Ingreso por servicio adicional',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                        ),
+                        prefixIcon: const Icon(Icons.description),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: ElevatedButton(
+                        onPressed: _addManualIncome,
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.green,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              children: [
-                                // Icono con fondo circular
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isManual
-                                            ? Colors.lightBlue.withOpacity(0.1)
-                                            : Colors.green.withOpacity(0.1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    isManual
-                                        ? Icons.front_hand_rounded
-                                        : Icons.payment,
-                                    color:
-                                        isManual
-                                            ? Colors.blueGrey
-                                            : Colors.green,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Información de la transacción
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        isManual
-                                            ? transaction['description'] ??
-                                                'Ingreso manual'
-                                            : 'Pago - ${transaction['roomName'] ?? 'Sala'}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        dateFormatted,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Monto
-                                Text(
-                                  '₡${amount.toStringAsFixed(0)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 17,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          elevation: 2,
+                        ),
+                        child: const Text(
+                          'Agregar Ingreso',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
-              );
-            },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+
+          // Título de transacciones
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.receipt_long, size: 18, color: Colors.grey),
+                const SizedBox(width: 8),
+                Text(
+                  'Transacciones de ${_months.firstWhere((m) => m['value'] == _selectedMonth)['label']}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Lista de transacciones con altura fija
+          SizedBox(
+            height: 400, // Altura fija para la lista
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('payments')
+                  .where('status', isEqualTo: 'received')
+                  .where('year', isEqualTo: _selectedYear)
+                  .where('month', isEqualTo: _selectedMonth)
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, paymentSnapshot) {
+                if (paymentSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('manual_earnings')
+                      .where('year', isEqualTo: _selectedYear)
+                      .where('month', isEqualTo: _selectedMonth)
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, manualSnapshot) {
+                    if (manualSnapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    // Combinar ambos tipos de ingresos
+                    List<Map<String, dynamic>> allTransactions = [];
+
+                    if (paymentSnapshot.hasData) {
+                      for (var doc in paymentSnapshot.data!.docs) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        allTransactions.add({
+                          ...data,
+                          'id': doc.id,
+                          'type': 'payment',
+                        });
+                      }
+                    }
+
+                    if (manualSnapshot.hasData) {
+                      for (var doc in manualSnapshot.data!.docs) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        allTransactions.add({
+                          ...data,
+                          'id': doc.id,
+                          'type': 'manual',
+                        });
+                      }
+                    }
+
+                    // Ordenar por fecha (más reciente primero)
+                    allTransactions.sort((a, b) {
+                      final aTime = a['timestamp'] as Timestamp?;
+                      final bTime = b['timestamp'] as Timestamp?;
+                      if (aTime == null) return 1;
+                      if (bTime == null) return -1;
+                      return bTime.compareTo(aTime);
+                    });
+
+                    if (allTransactions.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.receipt_long,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No hay transacciones en ${_months.firstWhere((m) => m['value'] == _selectedMonth)['label']} $_selectedYear',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // Usar ListView dentro del SizedBox
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: allTransactions.length,
+                      itemBuilder: (context, index) {
+                        final transaction = allTransactions[index];
+                        final isManual = transaction['type'] == 'manual';
+                        final amount = transaction['amount'] ?? 0;
+                        final timestamp = transaction['timestamp'] as Timestamp?;
+                        final transactionId = transaction['id'] ?? '';
+
+                        // Formato para fecha más legible
+                        String dateFormatted = timestamp != null
+                            ? _formatDate(timestamp.toDate())
+                            : 'Fecha no disponible';
+
+                        return Dismissible(
+                          key: Key(transactionId),
+                          direction: isManual
+                              ? DismissDirection.endToStart
+                              : DismissDirection.none,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          confirmDismiss: isManual
+                              ? (direction) => _confirmDelete(context)
+                              : null,
+                          onDismissed: isManual
+                              ? (direction) => _deleteManualIncome(transactionId)
+                              : null,
+                          child: Card(
+                            elevation: 2,
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  // Icono con fondo circular
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: isManual
+                                          ? Colors.green.withOpacity(0.1)
+                                          : Colors.blue.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      isManual
+                                          ? Icons.front_hand_rounded
+                                          : Icons.payment,
+                                      color: isManual ? Colors.green : Colors.blue,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Información de la transacción
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          isManual
+                                              ? (transaction['description'] ?? 'Ingreso manual')
+                                              : (transaction['roomName'] ?? 'Pago recibido'),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          dateFormatted,
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Monto
+                                  Text(
+                                    '₡${amount.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 17,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+
+          // Padding inferior para mejor visualización
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
@@ -1789,85 +1794,106 @@ Future<void> _approveRoom(
   }
 }
 
-// Método para ver el comprobante de pago
 void _viewPaymentReceipt(BuildContext context, String imageUrl) {
   showDialog(
     context: context,
     builder:
         (context) => Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppBar(
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      title: const Text(
-                        'Comprobante de Pago',
-                        style: TextStyle(color: Colors.black87),
-                      ),
-                      leading: IconButton(
+          insetPadding: const EdgeInsets.all(16),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.95,
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Cambio crucial aquí
+              children: [
+                // Header fijo
+                Container(
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
                         icon: const Icon(Icons.close, color: Colors.black87),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      centerTitle: true,
-                    ),
-                    InteractiveViewer(
-                      minScale: 0.5,
-                      maxScale: 3.0,
-                      child: CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        placeholder:
-                            (context, url) => const SizedBox(
-                              height: 300,
-                              child: Center(child: CircularProgressIndicator()),
-                            ),
-                        errorWidget:
-                            (context, url, error) => SizedBox(
-                              height: 300,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.error,
-                                    size: 50,
-                                    color: Colors.red,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text('Error: $error'),
-                                ],
-                              ),
-                            ),
-                        imageBuilder:
-                            (context, imageProvider) => Container(
-                              constraints: BoxConstraints(
-                                maxHeight:
-                                    MediaQuery.of(context).size.height * 0.7,
-                                maxWidth: MediaQuery.of(context).size.width,
-                              ),
-                              decoration: BoxDecoration(
-                                image: DecorationImage(
-                                  image: imageProvider,
-                                  fit: BoxFit.contain,
+                      const Expanded(
+                        child: Text(
+                          'Comprobante de Pago',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+
+                // Contenido completamente scrolleable
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: InteractiveViewer(
+                        minScale: 0.5,
+                        maxScale: 3.0,
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          placeholder:
+                              (context, url) => Container(
+                                height: 200,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
                                 ),
                               ),
-                            ),
+                          errorWidget:
+                              (context, url, error) => Container(
+                                height: 200,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error,
+                                      size: 48,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text('Error al cargar imagen'),
+                                  ],
+                                ),
+                              ),
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
   );

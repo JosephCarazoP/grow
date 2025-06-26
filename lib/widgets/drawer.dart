@@ -70,6 +70,7 @@ class CustomDrawer extends StatelessWidget {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
@@ -85,121 +86,142 @@ class CustomDrawer extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Logo with flexible height
               Center(
-                child: Image.asset('assets/grow_baja_calidad_blanco.png', height: 150),
+                child: Image.asset(
+                  'assets/grow_baja_calidad_blanco.png',
+                  height: MediaQuery.of(context).size.height * 0.15, // Responsive height
+                  fit: BoxFit.contain,
+                ),
               ),
               _buildSearchBar(),
-              const SizedBox(height: 24),
-              _drawerItem(context, Icons.home, 'Inicio', '/home_hub'),
-              _drawerItem(context, Icons.add, 'Crear sala', '/add_room_page'),
+              const SizedBox(height: 16), // Reduced spacing
 
-              StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(FirebaseAuth.instance.currentUser?.uid)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData && snapshot.data?.data() != null) {
-                    final userData = snapshot.data!.data() as Map<String, dynamic>;
-                    final userRole = userData['role'] ?? 'usuario';
-
-                    // Only show this option to owners
-                    if (userRole == 'owner') {
-                      return _drawerItem(
-                          context,
-                          Icons.fitness_center,
-                          'Banco de Ejercicios',
-                          '/bench_exercises'
-                      );
-                    }
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-
-              StreamBuilder<int>(
-                stream: _getNotificationCountStream(),
-                builder: (context, snapshot) {
-                  int notificationCount = snapshot.data ?? 0;
-                  return _drawerItemWithBadge(
-                    context,
-                    Icons.notifications,
-                    'Notificaciones',
-                    '/notification_page',
-                    notificationCount,
-                  );
-                },
-              ),
-              const Divider(color: Colors.white30, height: 40),
-              const Text(
-                'SALAS A LAS QUE TE HAS UNIDO',
-                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
+              // Make the rest of the content scrollable
               Expanded(
-                child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _getSalasUnidas(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: Colors.white));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Text('No estás unido a ninguna sala.', style: TextStyle(color: Colors.white70));
-                    }
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _drawerItem(context, Icons.home, 'Inicio', '/home_hub'),
+                      _drawerItem(context, Icons.add, 'Crear sala', '/add_room_page'),
 
-                    return ListView.builder(
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        final sala = snapshot.data![index];
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: sala['logo'] != null && sala['logo'].toString().isNotEmpty
-                                ? CachedNetworkImageProvider(sala['logo'])
-                                : null,
-                            backgroundColor: Colors.grey[800],
-                            child: sala['logo'] == null || sala['logo'].toString().isEmpty
-                                ? Text(sala['nombre']?[0] ?? 'S', style: TextStyle(color: Colors.white))
-                                : null,
-                          ),
-                          title: Text(sala['nombre'] ?? '', style: const TextStyle(color: Colors.white)),
-                          onTap: () {
-                            Navigator.pop(context); // Cerrar drawer
+                      StreamBuilder<DocumentSnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(FirebaseAuth.instance.currentUser?.uid)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData && snapshot.data?.data() != null) {
+                            final userData = snapshot.data!.data() as Map<String, dynamic>;
+                            final userRole = userData['role'] ?? 'usuario';
 
-                            // Si la categoría es Fitness, dirigir a room_fitness_homepage
-                            if (sala['categoria']?.toLowerCase() == 'fitness') {
-                              // Para salas de fitness, usar la misma página general
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RoomFitnessHomePage(
-                                    roomId: sala['id'], userId: '',
-                                  ),
-                                ),
+                            if (userRole == 'owner') {
+                              return _drawerItem(
+                                  context,
+                                  Icons.fitness_center,
+                                  'Banco de Ejercicios',
+                                  '/bench_exercises'
                               );
-                            } else {
-                              // Para otras categorías, usar la página general de detalle de sala
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RoomDetailsPage(
-                                    roomId: sala['id'],
-                                    roomData: sala,
-                                  ),
+                            }
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+
+                      StreamBuilder<int>(
+                        stream: _getNotificationCountStream(),
+                        builder: (context, snapshot) {
+                          int notificationCount = snapshot.data ?? 0;
+                          return _drawerItemWithBadge(
+                            context,
+                            Icons.notifications,
+                            'Notificaciones',
+                            '/notification_page',
+                            notificationCount,
+                          );
+                        },
+                      ),
+                      const Divider(color: Colors.white30, height: 32), // Reduced height
+                      const Text(
+                        'SALAS A LAS QUE TE HAS UNIDO',
+                        style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12), // Reduced spacing
+
+                      // Salas unidas with constrained height
+                      SizedBox(
+                        height: 200, // Fixed height for the list
+                        child: FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _getSalasUnidas(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator(color: Colors.white));
+                            }
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return const Center(
+                                child: Text(
+                                  'No estás unido a ninguna sala.',
+                                  style: TextStyle(color: Colors.white70),
+                                  textAlign: TextAlign.center,
                                 ),
                               );
                             }
+
+                            return ListView.builder(
+                              itemCount: snapshot.data!.length,
+                              itemBuilder: (context, index) {
+                                final sala = snapshot.data![index];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundImage: sala['logo'] != null && sala['logo'].toString().isNotEmpty
+                                        ? CachedNetworkImageProvider(sala['logo'])
+                                        : null,
+                                    backgroundColor: Colors.grey[800],
+                                    child: sala['logo'] == null || sala['logo'].toString().isEmpty
+                                        ? Text(sala['nombre']?[0] ?? 'S', style: TextStyle(color: Colors.white))
+                                        : null,
+                                  ),
+                                  title: Text(sala['nombre'] ?? '', style: const TextStyle(color: Colors.white)),
+                                  onTap: () {
+                                    Navigator.pop(context);
+
+                                    if (sala['categoria']?.toLowerCase() == 'fitness') {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => RoomFitnessHomePage(
+                                            roomId: sala['id'], userId: '',
+                                          ),
+                                        ),
+                                      );
+                                    } else {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => RoomDetailsPage(
+                                            roomId: sala['id'],
+                                            roomData: sala,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                );
+                              },
+                            );
                           },
-                        );
-                      },
-                    );
-                  },
+                        ),
+                      ),
+                      const Divider(color: Colors.white30, height: 20),
+                      ListTile(
+                        leading: const Icon(Icons.logout, color: Colors.white),
+                        title: const Text('Cerrar sesión', style: TextStyle(color: Colors.white)),
+                        onTap: () => _signOut(context),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(color: Colors.white30, height: 20),
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.white),
-                title: const Text('Cerrar sesión', style: TextStyle(color: Colors.white)),
-                onTap: () => _signOut(context),
               ),
             ],
           ),

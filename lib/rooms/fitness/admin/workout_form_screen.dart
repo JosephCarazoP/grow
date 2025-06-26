@@ -803,6 +803,9 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
   }
 
   void _showDayEditDialog(WorkoutDay day, int dayIndex) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallDevice = screenWidth < 600;
+
     // Form field controllers
     final warmupController = TextEditingController(text: day.warmup);
     final finalExercisesController = TextEditingController(
@@ -815,759 +818,690 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.75),
-      builder:
-          (context) => StatefulBuilder(
-            builder: (context, setState) {
-              return Dialog(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                insetPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
-                ),
-                child: Container(
-                  constraints: const BoxConstraints(
-                    maxWidth: 550,
-                    maxHeight: 650,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: isSmallDevice ? 8 : 16,
+              vertical: isSmallDevice ? 16 : 24,
+            ),
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: isSmallDevice ? screenWidth * 0.98 : 500,
+                maxHeight: isSmallDevice ? screenWidth * 1.5 : 700,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(isSmallDevice ? 16 : 20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.6),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF202020),
-                        const Color(0xFF151515),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    padding: EdgeInsets.all(isSmallDevice ? 16 : 24),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(isSmallDevice ? 16 : 20),
+                        topRight: Radius.circular(isSmallDevice ? 16 : 20),
+                      ),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.blue.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.6),
-                        spreadRadius: 2,
-                        blurRadius: 15,
-                      ),
-                    ],
-                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(isSmallDevice ? 8 : 10),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.calendar_today_rounded,
+                            color: Colors.blue.shade300,
+                            size: isSmallDevice ? 16 : 18,
+                          ),
+                        ),
+                        SizedBox(width: isSmallDevice ? 10 : 12),
+                        Expanded(
+                          child: Text(
+                            'Configuración: ${_getDayName(day.dayOfWeek)}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isSmallDevice ? 14 : 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            color: Colors.white70,
+                            size: isSmallDevice ? 18 : 20,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          splashRadius: isSmallDevice ? 18 : 20,
+                          padding: EdgeInsets.all(isSmallDevice ? 6 : 8),
+                          constraints: BoxConstraints(
+                            minWidth: isSmallDevice ? 32 : 36,
+                            minHeight: isSmallDevice ? 32 : 36,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      // Header
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 20, 16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.blue.withOpacity(0.2),
-                              Colors.indigo.withOpacity(0.15),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
-                          ),
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Colors.white.withOpacity(0.1),
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.calendar_today_rounded,
-                                color: Colors.blue.shade300,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Text(
-                              'Configuración: ${_getDayName(day.dayOfWeek)}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.5,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.white70,
-                              ),
-                              onPressed: () => Navigator.pop(context),
-                              splashRadius: 24,
-                            ),
-                          ],
-                        ),
-                      ),
 
-                      // Content area
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  // Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(isSmallDevice ? 16 : 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Warmup section
+                          Row(
                             children: [
-                              // Warmup section
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.directions_run_rounded,
-                                    color: Colors.orange.shade300,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  const Text(
-                                    'Calentamiento',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
+                              Icon(
+                                Icons.whatshot_rounded,
+                                color: Colors.orange.shade300,
+                                size: isSmallDevice ? 18 : 20,
                               ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.orange.withOpacity(0.3),
-                                  ),
+                              SizedBox(width: isSmallDevice ? 8 : 10),
+                              Text(
+                                'Calentamiento',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: isSmallDevice ? 14 : 16,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline_rounded,
-                                      color: Colors.orange.withOpacity(0.8),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        'Configure aquí el calentamiento específico para este día. Si prefiere un calentamiento general para todos los días, déjelo en blanco y configure el calentamiento general.',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.8),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: warmupController,
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.white.withOpacity(0.05),
-                                  hintText:
-                                      'Describe el calentamiento para este día',
-                                  hintStyle: TextStyle(
-                                    color: Colors.white.withOpacity(0.3),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.white.withOpacity(0.1),
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.orange.withOpacity(0.6),
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.all(16),
-                                ),
-                                style: const TextStyle(color: Colors.white),
-                                maxLines: 3,
-                              ),
-
-                              const SizedBox(height: 24),
-
-                              // Exercises section
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.fitness_center,
-                                        color: Colors.blue.shade300,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      const Text(
-                                        'Ejercicios',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  ElevatedButton.icon(
-                                    onPressed: () async {
-                                      final result = await showDialog<Exercise>(
-                                        context: context,
-                                        builder:
-                                            (context) =>
-                                                const ExerciseFormDialog(),
-                                      );
-
-                                      if (result != null) {
-                                        setState(() {
-                                          exercises.add(result);
-                                        });
-                                      }
-                                    },
-                                    icon: const Icon(Icons.add, size: 18),
-                                    label: const Text('Agregar'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue.shade700,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 10,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      elevation: 0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              // Exercises list
-                              if (exercises.isEmpty)
-                                Container(
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.04),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.07),
-                                    ),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.fitness_center_outlined,
-                                        color: Colors.white.withOpacity(0.3),
-                                        size: 40,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'No hay ejercicios agregados',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.5),
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Agrega ejercicios con el botón "Agregar"',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.3),
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              else
-                                Container(
-                                  constraints: const BoxConstraints(
-                                    maxHeight:
-                                        360, // Aumentado de 240 a 360 para mostrar más elementos
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.03),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.08),
-                                    ),
-                                  ),
-                                  child: ListView.builder(
-                                    shrinkWrap: true,
-                                    padding: const EdgeInsets.all(8),
-                                    itemCount: exercises.length,
-                                    itemBuilder: (context, index) {
-                                      final exercise = exercises[index];
-                                      return Container(
-                                        margin: const EdgeInsets.only(
-                                          bottom: 6,
-                                        ), // Reducido de 8 a 6
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.blue.withOpacity(0.1),
-                                              Colors.indigo.withOpacity(0.05),
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(
-                                              0.08,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Container(
-                                          margin: const EdgeInsets.only(
-                                            bottom: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                Colors.blue.withOpacity(0.1),
-                                                Colors.indigo.withOpacity(0.05),
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            border: Border.all(
-                                              color: Colors.white.withOpacity(
-                                                0.08,
-                                              ),
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.fromLTRB(
-                                            14,
-                                            8,
-                                            14,
-                                            4,
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // Primera fila: número y nombre del ejercicio
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.all(8),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.blue
-                                                          .withOpacity(0.15),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                    child: Text(
-                                                      '${index + 1}',
-                                                      style: TextStyle(
-                                                        color:
-                                                            Colors
-                                                                .blue
-                                                                .shade300,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Text(
-                                                      exercise.name,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-
-                                              // Detalles del ejercicio
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  left: 8,
-                                                  top: 6,
-                                                ),
-                                                child: Row(
-                                                  children: [
-                                                    _buildExerciseDetail(
-                                                      Icons.repeat_rounded,
-                                                      '${exercise.sets} series',
-                                                      Colors.green,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    _buildExerciseDetail(
-                                                      Icons.fitness_center,
-                                                      '${exercise.reps} reps',
-                                                      Colors.orange,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    _buildExerciseDetail(
-                                                      Icons.timer,
-                                                      exercise.rest,
-                                                      Colors.red,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-
-                                              // Botones de acción en la parte inferior
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 8,
-                                                ),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.end,
-                                                  children: [
-                                                    TextButton.icon(
-                                                      icon: Icon(
-                                                        Icons.edit_rounded,
-                                                        color:
-                                                            Colors
-                                                                .blue
-                                                                .shade300,
-                                                        size: 16,
-                                                      ),
-                                                      label: Text(
-                                                        'Editar',
-                                                        style: TextStyle(
-                                                          color:
-                                                              Colors
-                                                                  .blue
-                                                                  .shade300,
-                                                          fontSize: 12,
-                                                        ),
-                                                      ),
-                                                      style: TextButton.styleFrom(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 4,
-                                                            ),
-                                                        minimumSize: Size.zero,
-                                                      ),
-                                                      onPressed: () async {
-// Add semicolon at the end
-                                                        final result = await showDialog<bench.Exercise?>(
-                                                          context: context,
-                                                          builder: (context) => ExerciseFormDialog(
-                                                            exercise: bench.Exercise(
-                                                                name: exercise.name,
-                                                                sets: exercise.sets,
-                                                                reps: exercise.reps,
-                                                                rest: exercise.rest,
-                                                                cadence: exercise.cadence,
-                                                                videoUrl: exercise.videoUrl,
-                                                                muscleGroup: exercise.muscleGroup
-                                                            ),
-                                                          ),
-                                                        ); // Solo un punto y coma aquídd semicolon here;
-
-                                                        if (result != null) {
-                                                          setState(() {
-                                                            exercises[index] = Exercise(
-                                                                name: result.name,
-                                                                sets: result.sets,
-                                                                reps: result.reps,
-                                                                rest: result.rest,
-                                                                cadence: result.cadence,
-                                                                videoUrl: result.videoUrl,
-                                                                muscleGroup: result.muscleGroup
-                                                            );
-                                                          });
-                                                        }
-                                                      },
-                                                    ),
-                                                    TextButton.icon(
-                                                      icon: const Icon(
-                                                        Icons.delete_rounded,
-                                                        color: Colors.redAccent,
-                                                        size: 16,
-                                                      ),
-                                                      label: const Text(
-                                                        'Eliminar',
-                                                        style: TextStyle(
-                                                          color:
-                                                              Colors.redAccent,
-                                                          fontSize: 12,
-                                                        ),
-                                                      ),
-                                                      style: TextButton.styleFrom(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 4,
-                                                            ),
-                                                        minimumSize: Size.zero,
-                                                      ),
-                                                      onPressed: () {
-                                                        setState(() {
-                                                          exercises.removeAt(
-                                                            index,
-                                                          );
-                                                        });
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              const SizedBox(height: 24),
-
-                              // Final exercises section
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.sports_gymnastics_rounded,
-                                    color: Colors.purple.shade300,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  const Text(
-                                    'Ejercicios finales',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.purple.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.purple.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline_rounded,
-                                      color: Colors.purple.withOpacity(0.8),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        'Agregue ejercicios de enfriamiento o finales específicos para este día (estiramientos, cardiovascular ligero, etc).',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.8),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: finalExercisesController,
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.white.withOpacity(0.05),
-                                  hintText:
-                                      'Ej: 5 minutos de bicicleta o ejercicios abdominales',
-                                  hintStyle: TextStyle(
-                                    color: Colors.white.withOpacity(0.3),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.white.withOpacity(0.1),
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.purple.withOpacity(0.6),
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.all(16),
-                                ),
-                                style: const TextStyle(color: Colors.white),
-                                maxLines: 3,
                               ),
                             ],
                           ),
-                        ),
-                      ),
-
-                      // Footer with actions
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(20),
-                            bottomRight: Radius.circular(20),
+                          SizedBox(height: isSmallDevice ? 8 : 12),
+                          TextFormField(
+                            controller: warmupController,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              hintText: 'Ej: 5 minutos de cardio ligero',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withOpacity(0.3),
+                                fontSize: isSmallDevice ? 12 : 14,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.1),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.orange.withOpacity(0.6),
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.all(isSmallDevice ? 12 : 16),
+                            ),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isSmallDevice ? 13 : 14,
+                            ),
+                            maxLines: 3,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Stats summary
-                            Row(
+                          SizedBox(height: isSmallDevice ? 16 : 24),
+
+                          // Exercises section
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.fitness_center_rounded,
+                                    color: Colors.blue.shade300,
+                                    size: isSmallDevice ? 18 : 20,
+                                  ),
+                                  SizedBox(width: isSmallDevice ? 8 : 10),
+                                  Text(
+                                    'Ejercicios',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: isSmallDevice ? 14 : 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () async {
+                                  final result = await showDialog<bench.Exercise?>(
+                                    context: context,
+                                    builder: (context) => const ExerciseFormDialog(),
+                                  );
+                                  if (result != null) {
+                                    setState(() {
+                                      exercises.add(Exercise(
+                                        name: result.name,
+                                        sets: result.sets,
+                                        reps: result.reps,
+                                        rest: result.rest,
+                                        cadence: result.cadence,
+                                        videoUrl: result.videoUrl,
+                                        muscleGroup: result.muscleGroup,
+                                      ));
+                                    });
+                                  }
+                                },
+                                icon: Icon(
+                                  Icons.add_rounded,
+                                  size: isSmallDevice ? 14 : 16,
+                                ),
+                                label: Text(
+                                  'Agregar',
+                                  style: TextStyle(fontSize: isSmallDevice ? 11 : 12),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade700,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isSmallDevice ? 8 : 12,
+                                    vertical: isSmallDevice ? 4 : 6,
+                                  ),
+                                  minimumSize: Size(isSmallDevice ? 80 : 100, isSmallDevice ? 28 : 32),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: isSmallDevice ? 8 : 12),
+
+                          // Exercises list
+                          exercises.isEmpty
+                              ? Container(
+                            padding: EdgeInsets.all(isSmallDevice ? 16 : 24),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Column(
                               children: [
                                 Icon(
-                                  Icons.fitness_center_rounded,
-                                  size: 16,
-                                  color: Colors.white.withOpacity(0.6),
+                                  Icons.fitness_center_outlined,
+                                  color: Colors.grey.shade400,
+                                  size: isSmallDevice ? 32 : 40,
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(height: isSmallDevice ? 8 : 12),
                                 Text(
+                                  'No hay ejercicios agregados',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: isSmallDevice ? 12 : 14,
+                                  ),
+                                ),
+                                SizedBox(height: isSmallDevice ? 4 : 6),
+                                Text(
+                                  'Toca "Agregar" para incluir ejercicios',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: isSmallDevice ? 10 : 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                              : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: exercises.length,
+                            itemBuilder: (context, index) {
+                              final exercise = exercises[index];
+                              return Container(
+                                margin: EdgeInsets.only(bottom: isSmallDevice ? 8 : 12),
+                                padding: EdgeInsets.all(isSmallDevice ? 12 : 16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.blue.withOpacity(0.1),
+                                      Colors.blue.withOpacity(0.05),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.blue.withOpacity(0.2),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(isSmallDevice ? 6 : 8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            Icons.fitness_center_rounded,
+                                            color: Colors.blue.shade300,
+                                            size: isSmallDevice ? 14 : 16,
+                                          ),
+                                        ),
+                                        SizedBox(width: isSmallDevice ? 8 : 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                exercise.name,
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: isSmallDevice ? 13 : 15,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              SizedBox(height: isSmallDevice ? 2 : 4),
+                                              Text(
+                                                exercise.muscleGroup ?? 'Sin grupo muscular',
+                                                style: TextStyle(
+                                                  color: Colors.blue.shade300,
+                                                  fontSize: isSmallDevice ? 10 : 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: isSmallDevice ? 8 : 12),
+                                    Wrap(
+                                      spacing: isSmallDevice ? 4 : 6,
+                                      runSpacing: isSmallDevice ? 4 : 6,
+                                      children: [
+                                        _buildExerciseDetail(
+                                          Icons.repeat_rounded,
+                                          '${exercise.sets} series',
+                                          Colors.green,
+                                          isSmallDevice,
+                                        ),
+                                        _buildExerciseDetail(
+                                          Icons.trending_up_rounded,
+                                          '${exercise.reps} reps',
+                                          Colors.orange,
+                                          isSmallDevice,
+                                        ),
+                                        _buildExerciseDetail(
+                                          Icons.timer_rounded,
+                                          exercise.rest,
+                                          Colors.purple,
+                                          isSmallDevice,
+                                        ),
+                                        _buildExerciseDetail(
+                                          Icons.speed_rounded,
+                                          exercise.cadence,
+                                          Colors.cyan,
+                                          isSmallDevice,
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: isSmallDevice ? 8 : 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton.icon(
+                                          icon: Icon(
+                                            Icons.edit_rounded,
+                                            color: Colors.blue.shade300,
+                                            size: isSmallDevice ? 14 : 16,
+                                          ),
+                                          label: Text(
+                                            'Editar',
+                                            style: TextStyle(
+                                              color: Colors.blue.shade300,
+                                              fontSize: isSmallDevice ? 10 : 12,
+                                            ),
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: isSmallDevice ? 6 : 8,
+                                              vertical: isSmallDevice ? 2 : 4,
+                                            ),
+                                            minimumSize: Size.zero,
+                                          ),
+                                          onPressed: () async {
+                                            final result = await showDialog<bench.Exercise?>(
+                                              context: context,
+                                              builder: (context) => ExerciseFormDialog(
+                                                exercise: bench.Exercise(
+                                                  name: exercise.name,
+                                                  sets: exercise.sets,
+                                                  reps: exercise.reps,
+                                                  rest: exercise.rest,
+                                                  cadence: exercise.cadence,
+                                                  videoUrl: exercise.videoUrl,
+                                                  muscleGroup: exercise.muscleGroup,
+                                                ),
+                                              ),
+                                            );
+
+                                            if (result != null) {
+                                              setState(() {
+                                                exercises[index] = Exercise(
+                                                  name: result.name,
+                                                  sets: result.sets,
+                                                  reps: result.reps,
+                                                  rest: result.rest,
+                                                  cadence: result.cadence,
+                                                  videoUrl: result.videoUrl,
+                                                  muscleGroup: result.muscleGroup,
+                                                );
+                                              });
+                                            }
+                                          },
+                                        ),
+                                        TextButton.icon(
+                                          icon: Icon(
+                                            Icons.delete_rounded,
+                                            color: Colors.redAccent,
+                                            size: isSmallDevice ? 14 : 16,
+                                          ),
+                                          label: Text(
+                                            'Eliminar',
+                                            style: TextStyle(
+                                              color: Colors.redAccent,
+                                              fontSize: isSmallDevice ? 10 : 12,
+                                            ),
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: isSmallDevice ? 6 : 8,
+                                              vertical: isSmallDevice ? 2 : 4,
+                                            ),
+                                            minimumSize: Size.zero,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              exercises.removeAt(index);
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                          SizedBox(height: isSmallDevice ? 16 : 24),
+
+                          // Final exercises section
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.sports_gymnastics_rounded,
+                                color: Colors.purple.shade300,
+                                size: isSmallDevice ? 18 : 20,
+                              ),
+                              SizedBox(width: isSmallDevice ? 8 : 10),
+                              Text(
+                                'Ejercicios finales',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: isSmallDevice ? 14 : 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: isSmallDevice ? 8 : 12),
+                          Container(
+                            padding: EdgeInsets.all(isSmallDevice ? 8 : 12),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.purple.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  color: Colors.purple.withOpacity(0.8),
+                                  size: isSmallDevice ? 16 : 18,
+                                ),
+                                SizedBox(width: isSmallDevice ? 8 : 10),
+                                Expanded(
+                                  child: Text(
+                                    'Agregue ejercicios de enfriamiento o finales específicos para este día (estiramientos, cardiovascular ligero, etc).',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: isSmallDevice ? 10 : 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: isSmallDevice ? 8 : 12),
+                          TextFormField(
+                            controller: finalExercisesController,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              hintText: 'Ej: 5 minutos de bicicleta o ejercicios abdominales',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withOpacity(0.3),
+                                fontSize: isSmallDevice ? 12 : 14,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.1),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.purple.withOpacity(0.6),
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.all(isSmallDevice ? 12 : 16),
+                            ),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isSmallDevice ? 13 : 14,
+                            ),
+                            maxLines: 3,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Footer with actions
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallDevice ? 16 : 24,
+                      vertical: isSmallDevice ? 12 : 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(isSmallDevice ? 16 : 20),
+                        bottomRight: Radius.circular(isSmallDevice ? 16 : 20),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Stats summary
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.fitness_center_rounded,
+                                size: isSmallDevice ? 12 : 14,
+                                color: Colors.white.withOpacity(0.6),
+                              ),
+                              SizedBox(width: isSmallDevice ? 4 : 6),
+                              Flexible(
+                                child: Text(
                                   '${exercises.length} ejercicios',
                                   style: TextStyle(
                                     color: Colors.white.withOpacity(0.6),
-                                    fontSize: 14,
+                                    fontSize: isSmallDevice ? 11 : 12,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                            ),
-
-                            // Action buttons
-                            Row(
-                              children: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.white60,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: const Text('Cancelar'),
-                                ),
-                                const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    final updatedDay = WorkoutDay(
-                                      dayOfWeek: day.dayOfWeek,
-                                      warmup:
-                                          warmupController.text.trim().isEmpty
-                                              ? null
-                                              : warmupController.text.trim(),
-                                      exercises: exercises,
-                                      finalExercises:
-                                          finalExercisesController.text
-                                                  .trim()
-                                                  .isEmpty
-                                              ? null
-                                              : finalExercisesController.text
-                                                  .trim(),
-                                    );
-
-                                    setState(() {
-                                      if (dayIndex >= 0) {
-                                        _workoutDays[dayIndex] = updatedDay;
-                                      } else {
-                                        _workoutDays.add(updatedDay);
-                                      }
-                                    });
-
-                                    Navigator.pop(context);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue.shade700,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  child: const Text('Guardar'),
-                                ),
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+
+                        // Action buttons
+                        Expanded(
+                          flex: 3,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white60,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isSmallDevice ? 8 : 12,
+                                    vertical: isSmallDevice ? 6 : 8,
+                                  ),
+                                  minimumSize: Size(isSmallDevice ? 50 : 60, isSmallDevice ? 28 : 32),
+                                ),
+                                child: Text(
+                                  'Cancelar',
+                                  style: TextStyle(fontSize: isSmallDevice ? 11 : 13),
+                                ),
+                              ),
+                              SizedBox(width: isSmallDevice ? 4 : 6),
+                              ElevatedButton(
+                                onPressed: () {
+                                  final updatedDay = WorkoutDay(
+                                    dayOfWeek: day.dayOfWeek,
+                                    warmup: warmupController.text.trim().isEmpty
+                                        ? null
+                                        : warmupController.text.trim(),
+                                    exercises: exercises,
+                                    finalExercises: finalExercisesController.text.trim().isEmpty
+                                        ? null
+                                        : finalExercisesController.text.trim(),
+                                  );
+
+                                  setState(() {
+                                    if (dayIndex >= 0) {
+                                      _workoutDays[dayIndex] = updatedDay;
+                                    } else {
+                                      _workoutDays.add(updatedDay);
+                                    }
+                                  });
+
+                                  Navigator.pop(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade700,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isSmallDevice ? 12 : 16,
+                                    vertical: isSmallDevice ? 6 : 8,
+                                  ),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  minimumSize: Size(isSmallDevice ? 60 : 70, isSmallDevice ? 28 : 32),
+                                ),
+                                child: Text(
+                                  'Guardar',
+                                  style: TextStyle(fontSize: isSmallDevice ? 11 : 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     ).then((_) {
       setState(() {}); // Update the UI after closing the dialog
     });
   }
 
-  Widget _buildExerciseDetail(IconData icon, String text, Color color) {
+  Widget _buildExerciseDetail(IconData icon, String text, Color color, bool isSmallDevice) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+      margin: EdgeInsets.only(bottom: isSmallDevice ? 4 : 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.blue.withOpacity(0.1),
-            Colors.indigo.withOpacity(0.05),
+            color.withOpacity(0.2),
+            color.withOpacity(0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(isSmallDevice ? 8 : 10),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: color.withOpacity(0.3),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+      padding: EdgeInsets.fromLTRB(
+        isSmallDevice ? 8 : 14,
+        isSmallDevice ? 4 : 8,
+        isSmallDevice ? 8 : 14,
+        isSmallDevice ? 4 : 4,
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
-            size: 14, // Reducido de 16 a 14
-            color: color.withOpacity(0.9),
+            color: color,
+            size: isSmallDevice ? 12 : 14,
           ),
-          const SizedBox(width: 5),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10, // Reducido de 11 a 10
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+          SizedBox(width: isSmallDevice ? 4 : 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: isSmallDevice ? 10 : 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

@@ -36,15 +36,17 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       // Firebase Authentication
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
 
       final uid = userCredential.user!.uid;
 
       // Fetch user data from Firestore
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (!userDoc.exists) {
         _showError("El perfil de usuario no existe en la base de datos.");
@@ -140,10 +142,7 @@ class _LoginPageState extends State<LoginPage> {
                   // Títulos
                   Text(
                     "Bienvenido de nuevo",
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
@@ -154,10 +153,7 @@ class _LoginPageState extends State<LoginPage> {
                     decoration: _inputStyle('Correo electrónico', Icons.email),
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(color: Colors.black87, fontSize: 15),
                   ),
                   const SizedBox(height: 20),
 
@@ -167,7 +163,9 @@ class _LoginPageState extends State<LoginPage> {
                     decoration: _inputStyle('Contraseña', Icons.lock).copyWith(
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureText ? Icons.visibility : Icons.visibility_off,
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: Colors.grey[700],
                         ),
                         onPressed: () {
@@ -179,63 +177,140 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => login(),
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(color: Colors.black87, fontSize: 15),
                   ),
                   const SizedBox(height: 12),
 
                   // Remember me
-                  Row(
-                    children: [
-                      Transform.scale(
-                        scale: 0.9,
-                        child: Checkbox(
-                          value: rememberMe,
-                          onChanged: (value) {
-                            setState(() {
-                              rememberMe = value ?? false;
-                            });
-                          },
-                          activeColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        "Recordar sesión",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordPage(),
+                  // Replace the Row widget (around line 190) with this responsive layout:
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Check if screen is small (less than 350px width)
+                      bool isSmallScreen = constraints.maxWidth < 350;
+
+                      if (isSmallScreen) {
+                        // Vertical layout for small screens
+                        // Replace the Column in the small screen layout (around line 170) with this centered version:
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Transform.scale(
+                                  scale: 0.9,
+                                  child: Checkbox(
+                                    value: rememberMe,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        rememberMe = value ?? false;
+                                      });
+                                    },
+                                    activeColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  "Recordar sesión",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[800],
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          minimumSize: Size.zero,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          '¿Olvidaste tu contraseña?',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
+                            const SizedBox(height: 8),
+                            Center(
+                              child: TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => const ForgotPasswordPage(),
+                                    ),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  minimumSize: Size.zero,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  '¿Olvidaste tu contraseña?',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      } else {
+                        // Horizontal layout for normal screens
+                        return Row(
+                          children: [
+                            Transform.scale(
+                              scale: 0.9,
+                              child: Checkbox(
+                                value: rememberMe,
+                                onChanged: (value) {
+                                  setState(() {
+                                    rememberMe = value ?? false;
+                                  });
+                                },
+                                activeColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
+                            Text(
+                              "Recordar sesión",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ForgotPasswordPage(),
+                                  ),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                minimumSize: Size.zero,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                '¿Olvidaste tu contraseña?',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                    },
                   ),
                   const SizedBox(height: 32),
 
@@ -252,22 +327,23 @@ class _LoginPageState extends State<LoginPage> {
                       elevation: 2,
                       shadowColor: Colors.black.withOpacity(0.3),
                     ),
-                    child: isLoading
-                        ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                        : Text(
-                      'Iniciar sesión',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : Text(
+                              'Iniciar sesión',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                   ),
 
                   const SizedBox(height: 30),
@@ -278,21 +354,23 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       Text(
                         "¿No tienes cuenta? ",
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.grey[700], fontSize: 14),
                       ),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const RegisterPage()),
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
                           );
                         },
                         style: TextButton.styleFrom(
                           minimumSize: Size.zero,
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
