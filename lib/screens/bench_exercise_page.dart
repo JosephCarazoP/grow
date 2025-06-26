@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../rooms/fitness/models/bench_exercise.dart';
 import '../rooms/fitness/admin/bench_exercise_form_screen.dart';
+import '../widgets/drawer.dart';
 
 class BenchExercisesPage extends StatefulWidget {
   const BenchExercisesPage({Key? key}) : super(key: key);
@@ -13,368 +14,283 @@ class BenchExercisesPage extends StatefulWidget {
   State<BenchExercisesPage> createState() => _BenchExercisesPageState();
 }
 
-class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProviderStateMixin {
+class _BenchExercisesPageState extends State<BenchExercisesPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final TextEditingController _searchController = TextEditingController();
+
   bool _isLoading = false;
   String _searchQuery = '';
   String _selectedMuscleGroup = 'Todos';
-  late AnimationController _fabAnimationController;
-  late Animation<double> _fabAnimation;
 
   final List<String> _muscleGroups = [
-    'Todos',
-    'Pecho',
-    'Espalda',
-    'Piernas',
-    'Brazos',
-    'Hombros',
-    'Core',
-    'Cardio'
+    'Todos', 'Pecho', 'Espalda', 'Piernas', 'Brazos', 'Hombros', 'Core', 'Cardio'
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _fabAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fabAnimation = CurvedAnimation(
-      parent: _fabAnimationController,
-      curve: Curves.easeInOut,
-    );
-    _fabAnimationController.forward();
-  }
-
-  @override
   void dispose() {
-    _fabAnimationController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async {
-        // Evitar que el gesto de retroceso saque de la app
-        return false;
-      },
+      onWillPop: () async => false,
       child: Scaffold(
         backgroundColor: Colors.black,
-        drawer: _buildDrawer(),
-        appBar: _buildAppBar(),
+        drawer: const CustomDrawer(),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          title: const Text(
+            'Banco de Ejercicios',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          centerTitle: true,
+        ),
         body: Column(
           children: [
-            _buildSearchAndFilter(),
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : _buildExercisesList(),
-            ),
+            _buildSearchSection(),
+            _buildFilterChips(),
+            Expanded(child: _buildExercisesList()),
           ],
         ),
-        floatingActionButton: ScaleTransition(
-          scale: _fabAnimation,
-          child: FloatingActionButton.extended(
-            onPressed: _showExerciseForm,
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black,
-            elevation: 8,
-            icon: const Icon(Icons.add_rounded, size: 24),
-            label: const Text(
-              'Nuevo Ejercicio',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _showExerciseForm,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          icon: const Icon(Icons.add),
+          label: const Text('Nuevo'),
         ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      elevation: 0,
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-      centerTitle: true,
-      title: const Text(
-        'Banco de Ejercicios',
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.5,
-        ),
-      ),
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.menu_rounded),
-          onPressed: () => Scaffold.of(context).openDrawer(),
-        ),
-      ),
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      backgroundColor: Colors.grey[900],
-      child: Column(
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Colors.black,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                const Icon(
-                  Icons.fitness_center_rounded,
-                  color: Colors.white,
-                  size: 48,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Fitness App',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Administración de Ejercicios',
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _buildDrawerItem(
-                  icon: Icons.home_rounded,
-                  title: 'Inicio',
-                  onTap: () {},
-                ),
-                _buildDrawerItem(
-                  icon: Icons.fitness_center_rounded,
-                  title: 'Ejercicios',
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                  isSelected: true,
-                ),
-                _buildDrawerItem(
-                  icon: Icons.people_rounded,
-                  title: 'Usuarios',
-                  onTap: () {},
-                ),
-                _buildDrawerItem(
-                  icon: Icons.analytics_rounded,
-                  title: 'Estadísticas',
-                  onTap: () {},
-                ),
-                const Divider(color: Colors.grey),
-                _buildDrawerItem(
-                  icon: Icons.settings_rounded,
-                  title: 'Configuración',
-                  onTap: () {},
-                ),
-                _buildDrawerItem(
-                  icon: Icons.help_outline_rounded,
-                  title: 'Ayuda',
-                  onTap: () {},
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Versión 1.0.0',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    bool isSelected = false,
-  }) {
+  Widget _buildSearchSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      decoration: BoxDecoration(
-        color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isSelected ? Colors.white : Colors.grey[400],
-          size: 22,
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[400],
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchAndFilter() {
-    return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[900],
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[800]!),
+        border: Border(bottom: BorderSide(color: Colors.grey[800]!)),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Buscar ejercicios...',
+          hintStyle: TextStyle(color: Colors.grey[500]),
+          prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+            icon: Icon(Icons.clear, color: Colors.grey[500]),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          )
+              : null,
+          filled: true,
+          fillColor: Colors.grey[800],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
+        onChanged: (value) => setState(() => _searchQuery = value),
       ),
-      child: Column(
-        children: [
-          // Barra de búsqueda
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey[700]!),
-            ),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Buscar ejercicios...',
-                hintStyle: TextStyle(color: Colors.grey[500]),
-                prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[500]),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-              ),
-              onChanged: (value) => setState(() => _searchQuery = value),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Filtros por grupo muscular
-          SizedBox(
-            height: 40,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _muscleGroups.length,
-              itemBuilder: (context, index) {
-                final group = _muscleGroups[index];
-                final isSelected = _selectedMuscleGroup == group;
-                return Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  child: FilterChip(
-                    label: Text(
-                      group,
-                      style: TextStyle(
-                        color: isSelected ? Colors.black : Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => _selectedMuscleGroup = group);
-                    },
-                    backgroundColor: Colors.transparent,
-                    selectedColor: Colors.white,
-                    side: BorderSide(
-                      color: isSelected ? Colors.white : Colors.grey[600]!,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                );
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _muscleGroups.length,
+        itemBuilder: (context, index) {
+          final group = _muscleGroups[index];
+          final isSelected = _selectedMuscleGroup == group;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(group),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedMuscleGroup = group;
+                });
               },
+              backgroundColor: Colors.grey[800],
+              selectedColor: Colors.white, // Fondo blanco cuando está seleccionado
+              checkmarkColor: Colors.black, // Check negro cuando está seleccionado
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.black : Colors.white, // Negro cuando seleccionado, blanco cuando no
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+              side: BorderSide(
+                color: isSelected ? Colors.white : Colors.grey[700]!,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Cargando ejercicios...',
-            style: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 16,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildExercisesList() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore.collection('benchExercises').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingState();
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyState();
         }
 
-        var exercises = snapshot.data!.docs.map((doc) {
-          return BenchExercise.fromFirestore(doc);
-        }).toList();
+        var exercises = snapshot.data!.docs
+            .map((doc) => BenchExercise.fromFirestore(doc))
+            .toList();
 
-        // Aplicar filtros
         exercises = _applyFilters(exercises);
 
         if (exercises.isEmpty) {
           return _buildNoResultsState();
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(20),
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
           itemCount: exercises.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            return _buildExerciseCard(exercises[index], index);
+            return _buildExerciseCard(exercises[index]);
           },
         );
       },
+    );
+  }
+
+  Widget _buildExerciseCard(BenchExercise exercise) {
+    return Card(
+      color: Colors.grey[900],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey[800]!),
+      ),
+      child: InkWell(
+        onTap: () => _showExerciseForm(exercise),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Imagen o placeholder
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[800],
+                ),
+                child: exercise.imageUrls.isNotEmpty
+                    ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    exercise.imageUrls.first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.fitness_center,
+                        color: Colors.grey[600],
+                        size: 30,
+                      );
+                    },
+                  ),
+                )
+                    : Icon(
+                  Icons.fitness_center,
+                  color: Colors.grey[600],
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Información del ejercicio
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      exercise.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      exercise.muscleGroup,
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (exercise.description != null && exercise.description!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        exercise.description!,
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // Botones de acción
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    color: Colors.blue,
+                    onPressed: () => _showExerciseForm(exercise),
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    color: Colors.red,
+                    onPressed: () => _deleteExercise(exercise),
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -385,16 +301,16 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
         children: [
           Icon(
             Icons.fitness_center_outlined,
-            size: 80,
+            size: 64,
             color: Colors.grey[600],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Text(
             'No hay ejercicios',
             style: TextStyle(
               color: Colors.grey[400],
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
@@ -402,7 +318,7 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
             'Agrega tu primer ejercicio',
             style: TextStyle(
               color: Colors.grey[600],
-              fontSize: 16,
+              fontSize: 14,
             ),
           ),
         ],
@@ -416,17 +332,17 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.search_off_rounded,
-            size: 80,
+            Icons.search_off,
+            size: 64,
             color: Colors.grey[600],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Text(
             'Sin resultados',
             style: TextStyle(
               color: Colors.grey[400],
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
@@ -434,163 +350,10 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
             'Intenta con otros términos',
             style: TextStyle(
               color: Colors.grey[600],
-              fontSize: 16,
+              fontSize: 14,
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildExerciseCard(BenchExercise exercise, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[800]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _showExerciseForm(exercise),
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  // Imagen del ejercicio
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey[700]!),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: exercise.imageUrls.isNotEmpty
-                          ? Image.network(
-                        exercise.imageUrls.first,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildImagePlaceholder();
-                        },
-                      )
-                          : _buildImagePlaceholder(),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Información del ejercicio
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          exercise.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.grey[700]!,
-                            ),
-                          ),
-                          child: Text(
-                            exercise.muscleGroup,
-                            style: TextStyle(
-                              color: Colors.grey[300],
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Cadencia: ${exercise.defaultCadence}',
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Botones de acción
-                  Column(
-                    children: [
-                      _buildActionButton(
-                        icon: Icons.edit_rounded,
-                        onPressed: () => _showExerciseForm(exercise),
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildActionButton(
-                        icon: Icons.delete_rounded,
-                        onPressed: () => _deleteExercise(exercise),
-                        color: Colors.red,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImagePlaceholder() {
-    return Container(
-      color: Colors.grey[800],
-      child: Icon(
-        Icons.fitness_center_rounded,
-        color: Colors.grey[600],
-        size: 32,
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    required Color color,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: IconButton(
-        icon: Icon(icon, size: 20),
-        color: color,
-        onPressed: onPressed,
-        constraints: const BoxConstraints(
-          minWidth: 40,
-          minHeight: 40,
-        ),
       ),
     );
   }
@@ -609,9 +372,12 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
   }
 
   Future<void> _showExerciseForm([BenchExercise? exercise]) async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => BenchExerciseFormPage(exercise: exercise),
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BenchExerciseFormPage(exercise: exercise),
+        fullscreenDialog: true,
+      ),
     );
 
     if (result != null) {
@@ -619,7 +385,7 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
 
       try {
         final BenchExercise exerciseData = result['exercise'];
-        final List<File> newImages = result['newImages'];
+        final List<File> newImages = result['newImages'] ?? [];
 
         final exercisesRef = _firestore.collection('benchExercises');
         final String exerciseId = exerciseData.id ?? exercisesRef.doc().id;
@@ -652,25 +418,18 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Ejercicio guardado correctamente'),
-              backgroundColor: Colors.green[700],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            const SnackBar(
+              content: Text('Ejercicio guardado correctamente'),
+              backgroundColor: Colors.green,
             ),
           );
         }
       } catch (e) {
-        print('Error al guardar ejercicio: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error al guardar: $e'),
-              backgroundColor: Colors.red[700],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              content: Text('Error: $e'),
+              backgroundColor: Colors.red,
             ),
           );
         }
@@ -687,31 +446,22 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
         title: const Text(
           'Confirmar eliminación',
           style: TextStyle(color: Colors.white),
         ),
         content: Text(
-          '¿Estás seguro de eliminar "${exercise.name}"?',
+          '¿Eliminar "${exercise.name}"?',
           style: TextStyle(color: Colors.grey[300]),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.grey[400]),
-            ),
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: Colors.red),
-            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -723,13 +473,9 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
       try {
         if (exercise.imageUrls.isNotEmpty && exercise.id != null) {
           final storageRef = _storage.ref().child('bench_exercises/${exercise.id}');
-          try {
-            final listResult = await storageRef.listAll();
-            for (var item in listResult.items) {
-              await item.delete();
-            }
-          } catch (e) {
-            print('Error al eliminar imágenes: $e');
+          final listResult = await storageRef.listAll();
+          for (var item in listResult.items) {
+            await item.delete();
           }
         }
 
@@ -739,25 +485,18 @@ class _BenchExercisesPageState extends State<BenchExercisesPage> with TickerProv
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Ejercicio eliminado correctamente'),
-              backgroundColor: Colors.green[700],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            const SnackBar(
+              content: Text('Ejercicio eliminado'),
+              backgroundColor: Colors.green,
             ),
           );
         }
       } catch (e) {
-        print('Error al eliminar ejercicio: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error al eliminar: $e'),
-              backgroundColor: Colors.red[700],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              content: Text('Error: $e'),
+              backgroundColor: Colors.red,
             ),
           );
         }
