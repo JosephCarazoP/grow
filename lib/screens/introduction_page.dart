@@ -56,7 +56,9 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
     _slideAnimation = Tween<Offset>(
       begin: Offset(0, 1),
       end: Offset(0, 0),
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.elasticOut));
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.elasticOut),
+    );
 
     _pulseAnimation = Tween<double>(begin: 0.8, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
@@ -233,11 +235,7 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
                   ),
                 ],
               ),
-              child: Icon(
-                Icons.rocket_launch,
-                color: Colors.black,
-                size: 60,
-              ),
+              child: Icon(Icons.rocket_launch, color: Colors.black, size: 60),
             ),
             SizedBox(height: 40),
             Text(
@@ -370,11 +368,17 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
               children: [
                 _buildCommunityFeature('Comparte tus avances', Icons.share),
                 SizedBox(height: 16),
-                _buildCommunityFeature('Recibe apoyo constante', Icons.favorite),
+                _buildCommunityFeature(
+                  'Recibe apoyo constante',
+                  Icons.favorite,
+                ),
                 SizedBox(height: 16),
                 _buildCommunityFeature('Mantente motivado', Icons.flash_on),
                 SizedBox(height: 16),
-                _buildCommunityFeature('Crea conexiones reales', Icons.handshake),
+                _buildCommunityFeature(
+                  'Crea conexiones reales',
+                  Icons.handshake,
+                ),
               ],
             ),
           ),
@@ -386,70 +390,76 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
 
   Widget _buildFeaturesPage() {
     return SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 32),
-    child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-    SizedBox(height: 40),
-    Container(
-    width: 120,
-    height: 120,
-    decoration: BoxDecoration(
-    shape: BoxShape.circle,
-    color: Colors.white,
-    ),
-    child: Icon(Icons.star, color: Colors.black, size: 60),
-    ),
-    SizedBox(height: 40),
-    Text(
-    'Experiencia\nCompleta',
-    textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-      ),
-    ),
-      SizedBox(height: 30),
-      _buildPremiumFeatureCard('Videos y técnicas detalladas', Icons.play_circle),
-      SizedBox(height: 16),
-      _buildPremiumFeatureCard('Frases de activación mental', Icons.psychology),
-      SizedBox(height: 16),
-      _buildPremiumFeatureCard('Historial de progreso', Icons.trending_up),
-      SizedBox(height: 16),
-      Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.white.withOpacity(0.2),
-              blurRadius: 10,
-              spreadRadius: 2,
+      padding: EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(height: 40),
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.star, color: Colors.black, size: 24),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Discipline+ con acceso directo al coach',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
+            child: Icon(Icons.star, color: Colors.black, size: 60),
+          ),
+          SizedBox(height: 40),
+          Text(
+            'Experiencia\nCompleta',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 30),
+          _buildPremiumFeatureCard(
+            'Videos y técnicas detalladas',
+            Icons.play_circle,
+          ),
+          SizedBox(height: 16),
+          _buildPremiumFeatureCard(
+            'Frases de activación mental',
+            Icons.psychology,
+          ),
+          SizedBox(height: 16),
+          _buildPremiumFeatureCard('Historial de progreso', Icons.trending_up),
+          SizedBox(height: 16),
+          Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 2,
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+            child: Row(
+              children: [
+                Icon(Icons.star, color: Colors.black, size: 24),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Discipline+ con acceso directo al coach',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 40),
+        ],
       ),
-      SizedBox(height: 40),
-    ],
-    ),
     );
   }
 
@@ -496,10 +506,7 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
         Expanded(
           child: Text(
             text,
-            style: TextStyle(
-              color: Colors.grey[300],
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.grey[300], fontSize: 14),
           ),
         ),
       ],
@@ -549,11 +556,12 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
                 height: 8,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
-                  gradient: _currentPage == index
-                      ? LinearGradient(
-                    colors: [Color(0xFF6366f1), Color(0xFF8b5cf6)],
-                  )
-                      : null,
+                  gradient:
+                      _currentPage == index
+                          ? LinearGradient(
+                            colors: [Color(0xFF6366f1), Color(0xFF8b5cf6)],
+                          )
+                          : null,
                   color: _currentPage == index ? null : Colors.grey[600],
                 ),
               );
@@ -562,110 +570,96 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
           SizedBox(height: 32),
 
           // CTA Button
-        AnimatedBuilder(
-          animation: _pulseAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _currentPage == 3 ? _pulseAnimation.value : 1.0,
-              child: Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF6366f1),
-                      Color(0xFF8b5cf6),
-                      Color(0xFF3b82f6),
+          AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _currentPage == 3 ? _pulseAnimation.value : 1.0,
+                child: Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF6366f1),
+                        Color(0xFF8b5cf6),
+                        Color(0xFF3b82f6),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFF6366f1).withOpacity(0.4),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0xFF6366f1).withOpacity(0.4),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(28),
-                    onTap: () async {
-                      if (_currentPage < 3) {
-                        _pageController.nextPage(
-                          duration: Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      } else {
-                        // Fetch the room with name "Discipline" and "oficial" set to true
-                        final querySnapshot = await FirebaseFirestore.instance
-                            .collection('rooms')
-                            .where('name', isEqualTo: 'Discipline')
-                            .where('oficial', isEqualTo: true)
-                            .get();
-
-                        if (querySnapshot.docs.isNotEmpty) {
-                          final roomData = querySnapshot.docs.first.data();
-                          final roomId = querySnapshot.docs.first.id;
-
-                          // Navigate to RoomDetailsPage
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RoomDetailsPage(
-                                roomId: roomId,
-                                roomData: roomData,
-                              ),
-                            ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(28),
+                      onTap: () async {
+                        if (_currentPage < 3) {
+                          _pageController.nextPage(
+                            duration: Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
                           );
                         } else {
-                          // Show error if no room is found
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('No se encontró la sala oficial "Discipline".'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                          // Fetch the room with name "Discipline" and "oficial" set to true
+                          final querySnapshot =
+                              await FirebaseFirestore.instance
+                                  .collection('rooms')
+                                  .where('name', isEqualTo: 'Discipline')
+                                  .where('oficial', isEqualTo: true)
+                                  .get();
+
+                          if (querySnapshot.docs.isNotEmpty) {
+                            final roomData = querySnapshot.docs.first.data();
+                            final roomId = querySnapshot.docs.first.id;
+
+                            // Navigate to RoomDetailsPage
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => RoomDetailsPage(
+                                      roomId: roomId,
+                                      roomData: roomData,
+                                    ),
+                              ),
+                            );
+                          } else {
+                            // Show error if no room is found
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'No se encontró la sala oficial "Discipline".',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         }
-                      }
-                    },
-                    child: Center(
-                      child: Text(
-                        _currentPage < 3 ? 'Continuar' : 'Comenzar mi Transformación',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                      },
+                      child: Center(
+                        child: Text(
+                          _currentPage < 3
+                              ? 'Continuar'
+                              : 'Comenzar mi Transformación',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-
-          if (_currentPage > 0)
-            Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: TextButton(
-                onPressed: () {
-                  _pageController.previousPage(
-                    duration: Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                },
-                child: Text(
-                  'Atrás',
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
+              );
+            },
+          ),
         ],
       ),
     );
