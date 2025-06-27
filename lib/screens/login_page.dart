@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:grow/screens/room_detail_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_hub.dart';
+import 'introduction_page.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
 
@@ -38,15 +40,15 @@ class _LoginPageState extends State<LoginPage> {
       // Firebase Authentication
       final userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
       final uid = userCredential.user!.uid;
 
       // Fetch user data from Firestore
       final userDoc =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (!userDoc.exists) {
         _showError("El perfil de usuario no existe en la base de datos.");
@@ -67,20 +69,44 @@ class _LoginPageState extends State<LoginPage> {
       await prefs.setBool('rememberMe', rememberMe);
 
       // Redirect based on role
-      Widget destination = const HomeHubPage();
-      switch (role) {
-        case 'admin':
-        case 'owner':
-        case 'user':
-        default:
-          destination = const HomeHubPage();
-          break;
+      if (role == 'owner') {
+        // Redirect to HomeHub if the role is owner
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeHubPage()),
+        );
+      } else {
+        // Search for the "Discipline" room with "oficial" field set to true
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('rooms')
+            .where('name', isEqualTo: 'Discipline')
+            .where('oficial', isEqualTo: true)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          final roomData = querySnapshot.docs.first.data();
+          final roomId = querySnapshot.docs.first.id;
+
+          // Redirect to room_detail_page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GrowIntroScreen(),
+            ),
+          );
+        } else {
+          _showError("No se encontró la sala oficial 'Discipline'.");
+          setState(() => isLoading = false);
+        }
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => destination),
-      );
+      // Commented logic for future use
+      /*
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeHubPage()),
+    );
+    */
     } on FirebaseAuthException catch (e) {
       setState(() => isLoading = false);
 
