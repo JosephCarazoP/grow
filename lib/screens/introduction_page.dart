@@ -446,7 +446,7 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Discipline+ con acceso directo al coach',
+                    'Acceso directo al coach',
                     style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w600,
