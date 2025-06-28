@@ -52,6 +52,7 @@ dependencies:
   geocoding: ^2.1.1
   audio_waveforms: ^1.0.4
   audioplayers: ^5.2.1
+  flutter_local_notifications: ^16.3.0
 
   flutter_localizations:
     sdk: flutter

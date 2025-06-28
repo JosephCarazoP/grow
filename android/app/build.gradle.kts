@@ -16,6 +16,7 @@ dependencies {
     // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation("com.google.firebase:firebase-auth")
     implementation("androidx.multidex:multidex:2.0.1")
+    implementation("com.google.firebase:firebase-messaging:23.1.2")
 }
 
 android {
@@ -61,5 +62,5 @@ flutter {
     source = "../.."
 }
 
-//apply(plugin = "com.google.gms.google-services")
+apply(plugin = "com.google.gms.google-services")
 

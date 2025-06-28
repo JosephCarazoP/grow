@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // Importaciones necesarias para localización
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:grow/services/notification_service.dart';
 import 'package:intl/intl.dart'; // Importa intl
 import 'package:intl/date_symbol_data_local.dart'; // Necesario para initializeDateFormatting
 
@@ -22,13 +23,17 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  // Inicializa los datos de formato de fecha para el locale español
-  // Esto es crucial para que DateFormat('...', 'es') funcione
   await initializeDateFormatting('es', null);
-
+  await NotificationService().initialize();
   runApp(const MyApp());
 }
+
+
+
+
+
+
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

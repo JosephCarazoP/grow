@@ -118,7 +118,6 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
       }
     }
   }
-
   // Agregar estos métodos a RoomDetailsPage
 
   void _showGracePeriodAlert(SubscriptionInfo subscriptionInfo) {
