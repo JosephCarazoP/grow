@@ -60,22 +60,20 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
       final isMember = await _isUserMember();
       if (isMember) {
         final subscriptionInfo =
-            await SubscriptionService.checkSubscriptionStatus(widget.roomId);
+        await SubscriptionService.checkSubscriptionStatus(widget.roomId);
 
+        // Si el status es inactive o período de gracia expirado, bloquear inmediatamente
         if (subscriptionInfo.status == SubscriptionStatus.gracePeriodExpired) {
-          // Mostrar modal bloqueante inmediatamente
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showSubscriptionExpiredDialog();
           });
         } else if (subscriptionInfo.status == SubscriptionStatus.gracePeriod) {
-          // Mostrar alerta de período de gracia
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showGracePeriodAlert(subscriptionInfo);
           });
         } else if (subscriptionInfo.status == SubscriptionStatus.active &&
             subscriptionInfo.daysUntilExpiration != null &&
             subscriptionInfo.daysUntilExpiration! <= 7) {
-          // Mostrar alerta de expiración próxima
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showExpirationWarningAlert(subscriptionInfo);
           });
@@ -328,8 +326,8 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
       widget.roomId,
     );
 
+    // Si el status es inactive o período de gracia expirado, bloquear acceso
     if (subscriptionInfo.status == SubscriptionStatus.gracePeriodExpired) {
-      // Mostrar modal de suscripción expirada
       _showSubscriptionExpiredDialog();
       return;
     }

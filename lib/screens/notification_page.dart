@@ -1917,39 +1917,66 @@ class _ApprovalsSectionState extends State<ApprovalsSection>
     try {
       final batch = FirebaseFirestore.instance.batch();
 
-      // 1. Incrementar memberCount en la sala
-      final roomRef = FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(requestData['roomId']);
+      // Verificar si el usuario ya tiene una membresía existente
+      final existingMemberQuery = await FirebaseFirestore.instance
+          .collection('members')
+          .where('userId', isEqualTo: requestData['userId'])
+          .where('roomId', isEqualTo: requestData['roomId'])
+          .get();
 
-      // 2. Crear documento en collection members
-      final memberRef = FirebaseFirestore.instance.collection('members').doc();
       final now = DateTime.now();
       final expirationDate = now.add(const Duration(days: 30));
 
-      batch.set(memberRef, {
-        'userId': requestData['userId'],
-        'roomId': requestData['roomId'],
-        'userName': requestData['userName'],
-        'userPhoto': requestData['userPhoto'],
-        'roomName': requestData['roomName'],
-        'joinedAt': FieldValue.serverTimestamp(),
-        'expiresAt': Timestamp.fromDate(expirationDate),
-        'gracePeriodEndsAt': Timestamp.fromDate(
-          expirationDate.add(const Duration(days: 3)),
-        ),
-        'status': 'active',
-      });
+      if (existingMemberQuery.docs.isNotEmpty) {
+        // RENOVACIÓN: El usuario ya es/fue miembro - solo actualizar
+        final existingMemberDoc = existingMemberQuery.docs.first;
 
-      // 3. Crear en salasUnidas para el drawer
+        batch.update(existingMemberDoc.reference, {
+          'status': 'active',
+          'expiresAt': Timestamp.fromDate(expirationDate),
+          'gracePeriodEndsAt': Timestamp.fromDate(
+            expirationDate.add(const Duration(days: 3)),
+          ),
+          'renewedAt': FieldValue.serverTimestamp(),
+        });
+
+        // NO incrementar memberCount en renovación
+      } else {
+        // NUEVO MIEMBRO: Crear nuevo documento
+        final memberRef = FirebaseFirestore.instance.collection('members').doc();
+
+        batch.set(memberRef, {
+          'userId': requestData['userId'],
+          'roomId': requestData['roomId'],
+          'userName': requestData['userName'],
+          'userPhoto': requestData['userPhoto'],
+          'roomName': requestData['roomName'],
+          'joinedAt': FieldValue.serverTimestamp(),
+          'expiresAt': Timestamp.fromDate(expirationDate),
+          'gracePeriodEndsAt': Timestamp.fromDate(
+            expirationDate.add(const Duration(days: 3)),
+          ),
+          'status': 'active',
+        });
+
+        // Incrementar memberCount SOLO para nuevos miembros
+        final roomRef = FirebaseFirestore.instance
+            .collection('rooms')
+            .doc(requestData['roomId']);
+        batch.update(roomRef, {'memberCount': FieldValue.increment(1)});
+      }
+
+      // Crear/actualizar en salasUnidas
       final userSalasRef = FirebaseFirestore.instance
           .collection('usuarios')
           .doc(requestData['userId'])
           .collection('salasUnidas')
           .doc(requestData['roomId']);
 
-      // Obtener datos de la sala para guardar en salasUnidas
-      final roomDoc = await roomRef.get();
+      final roomDoc = await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(requestData['roomId'])
+          .get();
       final roomData = roomDoc.data() ?? {};
 
       batch.set(userSalasRef, {
@@ -1958,17 +1985,14 @@ class _ApprovalsSectionState extends State<ApprovalsSection>
         'logo': roomData['coverImage'] ?? '',
         'categoria': roomData['category'] ?? '',
         'unidoEn': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true)); // Merge para no sobrescribir si ya existe
 
-      // 4. Incrementar memberCount
-      batch.update(roomRef, {'memberCount': FieldValue.increment(1)});
-
-      // 5. Eliminar solicitud pendiente
+      // Eliminar solicitud pendiente
       batch.delete(
         FirebaseFirestore.instance.collection('pendingMembers').doc(requestId),
       );
 
-      // 6. Registrar pago como recibido
+      // Registrar pago
       batch.set(FirebaseFirestore.instance.collection('payments').doc(), {
         'userId': requestData['userId'],
         'userName': requestData['userName'],
@@ -1981,29 +2005,39 @@ class _ApprovalsSectionState extends State<ApprovalsSection>
         'year': DateTime.now().year,
         'status': 'received',
         'type': 'membership',
+        'isRenewal': existingMemberQuery.docs.isNotEmpty,
       });
 
-      // 7. Notificar al usuario
+      // Notificar al usuario
+      final notificationMessage = existingMemberQuery.docs.isNotEmpty
+          ? 'Tu membresía para ${requestData['roomName']} ha sido renovada exitosamente.'
+          : 'Tu solicitud para unirte a ${requestData['roomName']} ha sido aprobada.';
+
       batch.set(FirebaseFirestore.instance.collection('notifications').doc(), {
         'userId': requestData['userId'],
-        'title': '¡Membresía aprobada!',
-        'body':
-        'Tu solicitud para unirte a ${requestData['roomName']} ha sido aprobada.',
+        'title': existingMemberQuery.docs.isNotEmpty
+            ? '¡Membresía renovada!'
+            : '¡Membresía aprobada!',
+        'body': notificationMessage,
         'timestamp': FieldValue.serverTimestamp(),
         'read': false,
       });
 
       await batch.commit();
 
-      // Verificar si el widget sigue montado antes de mostrar el SnackBar
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Membresía aprobada con éxito')),
+          SnackBar(
+            content: Text(
+                existingMemberQuery.docs.isNotEmpty
+                    ? 'Membresía renovada con éxito'
+                    : 'Membresía aprobada con éxito'
+            ),
+          ),
         );
       }
     } catch (e) {
       print('Error al aprobar membresía: $e');
-      // Verificar si el widget sigue montado antes de mostrar el error
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),

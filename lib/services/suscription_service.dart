@@ -40,7 +40,8 @@ class SubscriptionService {
       print('DEBUG: Verificando membresía para sala $roomId, usuario $userId');
 
       // Buscar en la colección members principal
-      final memberQuery = await _firestore
+      final memberQuery =
+      await _firestore
           .collection('members')
           .where('userId', isEqualTo: userId)
           .where('roomId', isEqualTo: roomId)
@@ -55,7 +56,34 @@ class SubscriptionService {
       final data = memberDoc.data();
       print('DEBUG: Datos de membresía encontrados: $data');
 
-      // Usar la fecha y hora actual
+      // Verificar primero el status del miembro
+      final memberStatus = data['status'];
+      print('DEBUG: Status del miembro: $memberStatus');
+
+      // Si el status es inactive, retornar inmediatamente como expirado
+      if (memberStatus == 'inactive' || memberStatus == false) {
+        print('DEBUG: Miembro con status inactive - acceso denegado');
+
+        // Obtener fechas para mostrar información
+        DateTime? expiresAt;
+        DateTime? gracePeriodEndsAt;
+
+        if (data['expiresAt'] != null) {
+          expiresAt = (data['expiresAt'] as Timestamp).toDate();
+        }
+
+        if (data['gracePeriodEndsAt'] != null) {
+          gracePeriodEndsAt = (data['gracePeriodEndsAt'] as Timestamp).toDate();
+        }
+
+        return SubscriptionInfo(
+          status: SubscriptionStatus.gracePeriodExpired,
+          expiresAt: expiresAt,
+          gracePeriodEndsAt: gracePeriodEndsAt,
+        );
+      }
+
+      // Continuar con la lógica normal solo si el status es active
       final DateTime now = DateTime.now();
       print('DEBUG: Fecha y hora actual: $now');
 
@@ -82,13 +110,17 @@ class SubscriptionService {
       }
 
       // Calcular días hasta expiración (solo fechas, sin horas)
-      final DateTime expiresAtDate = DateTime(expiresAt.year, expiresAt.month, expiresAt.day);
+      final DateTime expiresAtDate = DateTime(
+        expiresAt.year,
+        expiresAt.month,
+        expiresAt.day,
+      );
       final DateTime todayDate = DateTime(now.year, now.month, now.day);
       int daysUntilExpiration = expiresAtDate.difference(todayDate).inDays;
 
       print('DEBUG: Días hasta expiración: $daysUntilExpiration');
 
-      // Verificar si la suscripción está activa
+      // Si la fecha indica que aún está activa
       if (expiresAt.isAfter(now)) {
         return SubscriptionInfo(
           status: SubscriptionStatus.active,
@@ -98,22 +130,20 @@ class SubscriptionService {
         );
       }
 
-      // La suscripción ha expirado
-      // Actualizar el status en Firestore si es necesario
-      if (data['status'] == 'active' || data['status'] == true) {
-        await memberDoc.reference.update({'status': false});
-      }
+      // La suscripción ha expirado - actualizar status a inactive
+      await memberDoc.reference.update({'status': 'inactive'});
 
       // Verificar período de gracia existente
       if (gracePeriodEndsAt != null) {
         if (gracePeriodEndsAt.isAfter(now)) {
           // En período de gracia
           final DateTime gracePeriodDate = DateTime(
-              gracePeriodEndsAt.year,
-              gracePeriodEndsAt.month,
-              gracePeriodEndsAt.day
+            gracePeriodEndsAt.year,
+            gracePeriodEndsAt.month,
+            gracePeriodEndsAt.day,
           );
-          int gracePeriodDaysLeft = gracePeriodDate.difference(todayDate).inDays;
+          int gracePeriodDaysLeft =
+              gracePeriodDate.difference(todayDate).inDays;
 
           return SubscriptionInfo(
             status: SubscriptionStatus.gracePeriod,
@@ -132,19 +162,21 @@ class SubscriptionService {
       }
 
       // No hay período de gracia definido, crear uno de 3 días
-      final DateTime autoGracePeriodEnd = expiresAt.add(const Duration(days: 3));
+      final DateTime autoGracePeriodEnd = expiresAt.add(
+        const Duration(days: 3),
+      );
 
       if (autoGracePeriodEnd.isAfter(now)) {
         // Actualizar Firestore con el período de gracia automático
         await memberDoc.reference.update({
           'gracePeriodEndsAt': Timestamp.fromDate(autoGracePeriodEnd),
-          'status': false,
+          'status': 'inactive',
         });
 
         final DateTime gracePeriodDate = DateTime(
-            autoGracePeriodEnd.year,
-            autoGracePeriodEnd.month,
-            autoGracePeriodEnd.day
+          autoGracePeriodEnd.year,
+          autoGracePeriodEnd.month,
+          autoGracePeriodEnd.day,
         );
         int gracePeriodDaysLeft = gracePeriodDate.difference(todayDate).inDays;
 
@@ -162,13 +194,11 @@ class SubscriptionService {
         expiresAt: expiresAt,
         gracePeriodEndsAt: autoGracePeriodEnd,
       );
-
     } catch (e) {
       print('ERROR: Error checking subscription status: $e');
       return SubscriptionInfo(status: SubscriptionStatus.notMember);
     }
   }
-
   // Actualizar el mensaje para el período de gracia
   static String getStatusMessage(SubscriptionInfo info) {
     switch (info.status) {
