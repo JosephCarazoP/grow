@@ -16,6 +16,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../widgets/drawer.dart';
+
 class RoomDetailsPage extends StatefulWidget {
   final String roomId;
   final Map<String, dynamic> roomData;
@@ -33,6 +35,9 @@ class RoomDetailsPage extends StatefulWidget {
 class _RoomDetailsPageState extends State<RoomDetailsPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -50,8 +55,40 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
     super.dispose();
   }
 
+  Future<void> _refreshPage() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      // Recargar datos de la sala
+      final roomDoc = await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomId)
+          .get();
+
+      if (roomDoc.exists && mounted) {
+        setState(() {
+          widget.roomData.clear();
+          widget.roomData.addAll(roomDoc.data() as Map<String, dynamic>);
+        });
+      }
+
+      // Verificar estado de suscripción nuevamente
+      await _checkInitialSubscriptionStatus();
+    } catch (e) {
+      print('Error refreshing room data: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+    }
+  }
+
   // Nuevo método para verificar al cargar la página
-  void _checkInitialSubscriptionStatus() async {
+  Future<void> _checkInitialSubscriptionStatus() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -1682,272 +1719,277 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
     final bool isOfficial = widget.roomData['oficial'] ?? false;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                widget.roomData['name'] ?? 'Detalles de la Sala',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Colors.black,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (isOfficial)
-              GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: true,
-                    builder: (context) {
-                      return Dialog(
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 340),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 32,
-                                offset: const Offset(0, 16),
-                                spreadRadius: 0,
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Icono
-                                Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF0F172A),
-                                    borderRadius: BorderRadius.circular(32),
-                                  ),
-                                  child: const Icon(
-                                    Icons.verified,
-                                    color: Colors.white,
-                                    size: 32,
-                                  ),
-                                ),
+        key: _scaffoldKey,
+        drawer: const CustomDrawer(),
+    appBar: AppBar(
+    leading: IconButton(
+    icon: const Icon(Icons.menu),
+    onPressed: () {
+    _scaffoldKey.currentState?.openDrawer();
+    },
+    ),
+    title: Row(
+    children: [
+    Expanded(
+    child: Text(
+    widget.roomData['name'] ?? 'Detalles de la Sala',
+    style: const TextStyle(
+    fontWeight: FontWeight.bold,
+    fontSize: 18,
+    color: Colors.black,
+    ),
+    overflow: TextOverflow.ellipsis,
+    ),
+    ),
+    if (isOfficial)
+    GestureDetector(
+    onTap: () {
+    showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (context) {
+    return Dialog(
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    child: Container(
+    constraints: const BoxConstraints(maxWidth: 340),
+    decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(24),
+    boxShadow: [
+    BoxShadow(
+    color: Colors.black.withOpacity(0.08),
+    blurRadius: 32,
+    offset: const Offset(0, 16),
+    spreadRadius: 0,
+    ),
+    ],
+    ),
+    child: Padding(
+    padding: const EdgeInsets.all(32),
+    child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+    Container(
+    width: 64,
+    height: 64,
+    decoration: BoxDecoration(
+    color: const Color(0xFF0F172A),
+    borderRadius: BorderRadius.circular(32),
+    ),
+    child: const Icon(
+    Icons.verified,
+    color: Colors.white,
+    size: 32,
+    ),
+    ),
+    const SizedBox(height: 24),
+    const Text(
+    'Sala Oficial',
+    style: TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+    color: Color(0xFF0F172A),
+    letterSpacing: -0.5,
+    ),
+    ),
+    const SizedBox(height: 12),
+    Text(
+    'Esta sala es oficial y está potenciada por la app. Es confiable y cumple con los estándares de calidad.',
+    textAlign: TextAlign.center,
+    style: TextStyle(
+    fontSize: 16,
+    color: Colors.grey[600],
+    height: 1.5,
+    letterSpacing: 0.2,
+    ),
+    ),
+    const SizedBox(height: 32),
+    SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+    onPressed: () => Navigator.of(context).pop(),
+    style: ElevatedButton.styleFrom(
+    backgroundColor: const Color(0xFF0F172A),
+    foregroundColor: Colors.white,
+    elevation: 0,
+    padding: const EdgeInsets.symmetric(
+    vertical: 16,
+    ),
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(16),
+    ),
+    ),
+    child: const Text(
+    'Entendido',
+    style: TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.3,
+    ),
+    ),
+    ),
+    ),
+    ],
+    ),
+    ),
+    ),
+    );
+    },
+    );
+    },
+    child: Container(
+    padding: const EdgeInsets.symmetric(
+    horizontal: 6,
+    vertical: 2,
+    ),
+    decoration: BoxDecoration(
+    color: Colors.blue.withOpacity(0.1),
+    borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+    children: const [
+    Icon(Icons.verified, color: Colors.blue, size: 18),
+    SizedBox(width: 4),
+    Text(
+    'Oficial',
+    style: TextStyle(
+    color: Colors.blue,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    ),
+    ),
+    ],
+    ),
+    ),
+    ),
+    ],
+    ),
+    centerTitle: true,
+    backgroundColor: Colors.white,
+    elevation: 4,
+    shadowColor: Colors.grey.withOpacity(0.3),
+    iconTheme: const IconThemeData(color: Colors.black),
+    actions: [
+    if (_isRefreshing)
+    const Center(
+    child: Padding(
+    padding: EdgeInsets.only(right: 16.0),
+    child: SizedBox(
+    width: 20,
+    height: 20,
+    child: CircularProgressIndicator(
+    strokeWidth: 2,
+    ),
+    ),
+    ),
+    ),
+    ],
+    ),
+    body: RefreshIndicator(
+    onRefresh: _refreshPage,
+    color: Colors.blue,
+    backgroundColor: Colors.white,
+    child: SingleChildScrollView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    child: Padding(
+    padding: const EdgeInsets.all(16),
+    child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+    // Imagen de portada
+    if (widget.roomData['coverImage'] != null &&
+    widget.roomData['coverImage'].toString().isNotEmpty)
+    ClipRRect(
+    borderRadius: BorderRadius.circular(16),
+    child: CachedNetworkImage(
+    imageUrl: widget.roomData['coverImage'],
+    height: 250,
+    width: double.infinity,
+    fit: BoxFit.cover,
+    alignment: Alignment(
+    0,
+    (widget.roomData['imagePosition'] ?? 0.0).toDouble(),
+    ),
+    memCacheHeight: 500,
+    fadeInDuration: const Duration(milliseconds: 300),
+    placeholder: (context, url) => Container(
+    height: 250,
+    color: Colors.grey[200],
+    child: const Center(
+    child: CircularProgressIndicator(),
+    ),
+    ),
+    errorWidget: (context, url, error) => Container(
+    height: 250,
+    width: double.infinity,
+    color: Colors.grey[200],
+    child: const Icon(
+    Icons.image_not_supported,
+    size: 50,
+    color: Colors.grey,
+    ),
+    ),
+    ),
+    ),
+    const SizedBox(height: 16),
 
-                                const SizedBox(height: 24),
+    // Animated Join Button
+    FutureBuilder<bool>(
+    future: _isUserMember(),
+    builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+    return Container(
+    height: 56,
+    decoration: BoxDecoration(
+    color: Colors.grey[300],
+    borderRadius: BorderRadius.circular(12),
+    ),
+    child: Center(
+    child: CircularProgressIndicator(
+    color: Colors.grey[600],
+    ),
+    ),
+    );
+    }
 
-                                // Título
-                                const Text(
-                                  'Sala Oficial',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0F172A),
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
+    final bool isMember = snapshot.data ?? false;
 
-                                const SizedBox(height: 12),
+    return FutureBuilder<SubscriptionInfo>(
+    future: isMember
+    ? SubscriptionService.checkSubscriptionStatus(
+    widget.roomId,
+    )
+        : null,
+    builder: (context, subscriptionSnapshot) {
+    if (isMember &&
+    subscriptionSnapshot.hasData &&
+    subscriptionSnapshot.data!.status ==
+    SubscriptionStatus.gracePeriodExpired) {
+    return AnimatedGradientButton(
+    text: 'Renovar Suscripción',
+    onPressed: () => _showRenewalPaymentModal(),
+    );
+    }
 
-                                // Descripción
-                                Text(
-                                  'Esta sala es oficial y está potenciada por la app. Es confiable y cumple con los estándares de calidad.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
-                                    height: 1.5,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 32),
-
-                                // Botón
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF0F172A),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Entendido',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.verified, color: Colors.blue, size: 18),
-                      SizedBox(width: 4),
-                      Text(
-                        'Oficial',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 4,
-        shadowColor: Colors.grey.withOpacity(0.3),
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Imagen de portada
-              if (widget.roomData['coverImage'] != null &&
-                  widget.roomData['coverImage'].toString().isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: widget.roomData['coverImage'],
-                    height: 250,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    alignment: Alignment(
-                      0,
-                      (widget.roomData['imagePosition'] ?? 0.0).toDouble(),
-                    ),
-                    memCacheHeight: 500,
-                    // Limita tamaño en memoria
-                    fadeInDuration: const Duration(milliseconds: 300),
-                    placeholder:
-                        (context, url) => Container(
-                          height: 250,
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        ),
-                    errorWidget:
-                        (context, url, error) => Container(
-                          height: 250,
-                          width: double.infinity,
-                          color: Colors.grey[200],
-                          child: const Icon(
-                            Icons.image_not_supported,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                        ),
-                  ),
-                ),
-              const SizedBox(height: 16),
-
-              // Animated Join Button
-              // Animated Join Button
-              // Reemplazar el FutureBuilder existente con este:
-              // Actualizar el FutureBuilder del botón para que se refresque
-              FutureBuilder<bool>(
-                future: _isUserMember(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Container(
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    );
-                  }
-
-                  final bool isMember = snapshot.data ?? false;
-
-                  return FutureBuilder<SubscriptionInfo>(
-                    future:
-                        isMember
-                            ? SubscriptionService.checkSubscriptionStatus(
-                              widget.roomId,
-                            )
-                            : null,
-                    builder: (context, subscriptionSnapshot) {
-                      // Si es miembro pero la suscripción está completamente expirada, mostrar botón de renovación
-                      if (isMember &&
-                          subscriptionSnapshot.hasData &&
-                          subscriptionSnapshot.data!.status ==
-                              SubscriptionStatus.gracePeriodExpired) {
-                        return AnimatedGradientButton(
-                          text: 'Renovar Suscripción',
-                          onPressed: () => _showRenewalPaymentModal(),
-                        );
-                      }
-
-                      return AnimatedGradientButton(
-                        text:
-                            isMember ? 'Entrar a la Sala' : 'Unirme a la Sala',
-                        onPressed: () {
-                          if (isMember) {
-                            _checkSubscriptionAndNavigate();
-                          } else {
-                            final double price =
-                                (widget.roomData['price'] ?? 0).toDouble();
-                            final double discount =
-                                (widget.roomData['discount'] ?? 0).toDouble();
-                            final double discountedPrice =
-                                price * (1 - (discount / 100));
-                            _showJoinRoomDialog(context, discountedPrice);
-                          }
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
+    return AnimatedGradientButton(
+    text: isMember ? 'Entrar a la Sala' : 'Unirme a la Sala',
+    onPressed: () {
+    if (isMember) {
+    _checkSubscriptionAndNavigate();
+    } else {
+    final double price = (widget.roomData['price'] ?? 0).toDouble();
+    final double discount = (widget.roomData['discount'] ?? 0).toDouble();
+    final double discountedPrice = price * (1 - (discount / 100));
+    _showJoinRoomDialog(context, discountedPrice);
+    }
+    },
+    );
+    },
+    );
+    },
+    ),
+    const SizedBox(height: 16),
 
               // Prices Section
               Center(
@@ -2393,6 +2435,6 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
           ),
         ),
       ),
-    );
+    ));
   }
 }
