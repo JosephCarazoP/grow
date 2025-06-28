@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'login_page.dart';
@@ -110,6 +111,20 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+// Method to check if string contains only allowed characters (letters, numbers, spaces for name)
+  bool _isValidName(String name) {
+    // Allow letters (including Spanish accented characters), numbers, and spaces
+    final nameRegex = RegExp(r'^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ0-9\s]+$');
+    return nameRegex.hasMatch(name) && name.trim().isNotEmpty;
+  }
+
+// Method to check if password contains only allowed characters (letters and numbers)
+  bool _isValidPassword(String password) {
+    // Allow only letters and numbers (no accents for passwords)
+    final passwordRegex = RegExp(r'^[a-zA-Z0-9]+$');
+    return passwordRegex.hasMatch(password) && password.length >= 6;
+  }
+
   // Método para finalizar el registro
   Future<void> _finishRegistration() async {
     setState(() {
@@ -120,9 +135,9 @@ class _RegisterPageState extends State<RegisterPage> {
       // Registro en Firebase Auth
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
 
       final uid = userCredential.user!.uid;
 
@@ -143,7 +158,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'name': nameController.text.trim(),
         'email': emailController.text.trim(),
         'photo':
-        photoUrl ??
+            photoUrl ??
             'https://ui-avatars.com/api/?name=${Uri.encodeComponent(nameController.text.trim())}',
         'coverPhoto': coverPhotoUrl,
         'description': bioController.text.trim(),
@@ -211,6 +226,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
@@ -221,6 +237,21 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Back button at the top
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back, color: Colors.black),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        padding: EdgeInsets.zero,
+                      ),
+                      Spacer(),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
                   Image.asset(
                     'assets/grow_baja_calidad_negro.png',
                     height: 120,
@@ -258,48 +289,70 @@ class _RegisterPageState extends State<RegisterPage> {
 
                       ElevatedButton(
                         onPressed:
-                        _isLoading
-                            ? null
-                            : () {
-                          if (_currentStep == 0) {
-                            // Validación del paso 1
-                            if (nameController.text.trim().isEmpty) {
-                              _showError("Ingresa tu nombre completo.");
-                              return;
-                            }
-                            if (passwordController.text !=
-                                confirmPasswordController.text) {
-                              _showError(
-                                "Las contraseñas no coinciden.",
-                              );
-                              return;
-                            }
-                            if (!acceptTerms) {
-                              _showError(
-                                "Debe aceptar los términos y condiciones.",
-                              );
-                              return;
-                            }
-                            _nextStep();
-                          } else {
-                            // Último paso: completar el registro
-                            _finishRegistration();
-                          }
-                        },
+                            _isLoading
+                                ? null
+                                : () {
+                                  if (_currentStep == 0) {
+                                    // Validación del paso 1
+                                    if (nameController.text.trim().isEmpty) {
+                                      _showError("Ingresa tu nombre completo.");
+                                      return;
+                                    }
+
+                                    // Validate name for emojis and special characters
+                                    if (!_isValidName(
+                                      nameController.text.trim(),
+                                    )) {
+                                      _showError(
+                                        "El nombre solo puede contener letras, números y espacios.",
+                                      );
+                                      return;
+                                    }
+
+                                    // Validate password for emojis and special characters
+                                    if (!_isValidPassword(
+                                      passwordController.text,
+                                    )) {
+                                      _showError(
+                                        "La contraseña solo puede contener letras y números (mínimo 6 caracteres).",
+                                      );
+                                      return;
+                                    }
+
+                                    if (passwordController.text !=
+                                        confirmPasswordController.text) {
+                                      _showError(
+                                        "Las contraseñas no coinciden.",
+                                      );
+                                      return;
+                                    }
+
+                                    if (!acceptTerms) {
+                                      _showError(
+                                        "Debe aceptar los términos y condiciones.",
+                                      );
+                                      return;
+                                    }
+                                    _nextStep();
+                                  } else {
+                                    // Último paso: completar el registro
+                                    _finishRegistration();
+                                  }
+                                },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,
                           foregroundColor: Colors.white,
                         ),
                         child:
-                        _isLoading
-                            ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
-                            : Text(
-                          _currentStep == _totalSteps - 1
-                              ? 'Finalizar'
-                              : 'Siguiente',
-                        ),
+                            _isLoading
+                                ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                                : Text(
+                                  _currentStep == _totalSteps - 1
+                                      ? 'Finalizar'
+                                      : 'Siguiente',
+                                ),
                       ),
                     ],
                   ),
@@ -351,6 +404,7 @@ class _RegisterPageState extends State<RegisterPage> {
           controller: nameController,
           decoration: _inputStyle('Nombre completo', Icons.person),
           textInputAction: TextInputAction.next,
+          inputFormatters: [NameInputFormatter()],
         ),
         const SizedBox(height: 16),
 
@@ -367,6 +421,7 @@ class _RegisterPageState extends State<RegisterPage> {
           obscureText: true,
           decoration: _inputStyle('Contraseña', Icons.lock),
           textInputAction: TextInputAction.next,
+          inputFormatters: [PasswordInputFormatter()],
         ),
         const SizedBox(height: 16),
 
@@ -375,6 +430,7 @@ class _RegisterPageState extends State<RegisterPage> {
           obscureText: true,
           decoration: _inputStyle('Confirmar contraseña', Icons.lock_outline),
           textInputAction: TextInputAction.done,
+          inputFormatters: [PasswordInputFormatter()],
         ),
         const SizedBox(height: 20),
 
@@ -423,11 +479,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 radius: 50,
                 backgroundColor: Colors.grey[200],
                 backgroundImage:
-                _profileImage != null ? FileImage(_profileImage!) : null,
+                    _profileImage != null ? FileImage(_profileImage!) : null,
                 child:
-                _profileImage == null
-                    ? Icon(Icons.person, size: 50, color: Colors.grey[400])
-                    : null,
+                    _profileImage == null
+                        ? Icon(Icons.person, size: 50, color: Colors.grey[400])
+                        : null,
               ),
               Positioned(
                 bottom: 0,
@@ -461,31 +517,31 @@ class _RegisterPageState extends State<RegisterPage> {
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(10),
               image:
-              _coverImage != null
-                  ? DecorationImage(
-                image: FileImage(_coverImage!),
-                fit: BoxFit.cover,
-              )
-                  : null,
+                  _coverImage != null
+                      ? DecorationImage(
+                        image: FileImage(_coverImage!),
+                        fit: BoxFit.cover,
+                      )
+                      : null,
             ),
             child:
-            _coverImage == null
-                ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.add_photo_alternate,
-                  size: 40,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Añadir foto de portada',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-              ],
-            )
-                : null,
+                _coverImage == null
+                    ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate,
+                          size: 40,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Añadir foto de portada',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ],
+                    )
+                    : null,
           ),
         ),
         const SizedBox(height: 24),
@@ -500,6 +556,49 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// Add these custom input formatters to the _RegisterPageState class
+
+class NameInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    // Allow letters (including Spanish accented characters), numbers, and spaces
+    // Permits: José María, Ángel, Sofía, etc.
+    final nameRegex = RegExp(r'[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ0-9\s]');
+    String filtered = newValue.text
+        .split('')
+        .where((char) => nameRegex.hasMatch(char))
+        .join('');
+
+    return TextEditingValue(
+      text: filtered,
+      selection: TextSelection.collapsed(offset: filtered.length),
+    );
+  }
+}
+
+class PasswordInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    // Allow only letters and numbers (no accents in passwords for security)
+    final passwordRegex = RegExp(r'[a-zA-Z0-9]');
+    String filtered = newValue.text
+        .split('')
+        .where((char) => passwordRegex.hasMatch(char))
+        .join('');
+
+    return TextEditingValue(
+      text: filtered,
+      selection: TextSelection.collapsed(offset: filtered.length),
     );
   }
 }

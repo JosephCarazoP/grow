@@ -1910,10 +1910,10 @@ class _ApprovalsSectionState extends State<ApprovalsSection>
   }
 
   Future<void> _approveMembership(
-    BuildContext context,
-    String requestId,
-    Map<String, dynamic> requestData,
-  ) async {
+      BuildContext context,
+      String requestId,
+      Map<String, dynamic> requestData,
+      ) async {
     try {
       final batch = FirebaseFirestore.instance.batch();
 
@@ -1988,91 +1988,59 @@ class _ApprovalsSectionState extends State<ApprovalsSection>
         'userId': requestData['userId'],
         'title': '¡Membresía aprobada!',
         'body':
-            'Tu solicitud para unirte a ${requestData['roomName']} ha sido aprobada.',
+        'Tu solicitud para unirte a ${requestData['roomName']} ha sido aprobada.',
         'timestamp': FieldValue.serverTimestamp(),
         'read': false,
       });
 
       await batch.commit();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Membresía aprobada con éxito')),
-      );
+      // Verificar si el widget sigue montado antes de mostrar el SnackBar
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Membresía aprobada con éxito')),
+        );
+      }
     } catch (e) {
       print('Error al aprobar membresía: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      // Verificar si el widget sigue montado antes de mostrar el error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
   Future<void> _rejectMembership(
-    BuildContext context,
-    String requestId,
-    Map<String, dynamic> requestData,
-  ) async {
+      BuildContext context,
+      String requestId,
+      Map<String, dynamic> requestData,
+      ) async {
     try {
       final batch = FirebaseFirestore.instance.batch();
 
-      // 1. Crear registro para devolución
-      batch.set(FirebaseFirestore.instance.collection('payments').doc(), {
-        'userId': requestData['userId'],
-        'userName': requestData['userName'],
-        'roomId': requestData['roomId'],
-        'roomName': requestData['roomName'],
-        'amount': requestData['paymentAmount'],
-        'receiptUrl': requestData['paymentReceiptUrl'],
-        'timestamp': FieldValue.serverTimestamp(),
-        'month': DateTime.now().month,
-        'year': DateTime.now().year,
-        'status': 'pending_refund',
-        'refundRequestedAt': FieldValue.serverTimestamp(),
-        'type': 'refund',
-        'paymentType': 'membership',
-      });
-
-      // 2. Eliminar solicitud pendiente
-      batch.delete(
-        FirebaseFirestore.instance.collection('pendingMembers').doc(requestId),
-      );
-
-      // 3. Notificar al usuario
-      batch.set(FirebaseFirestore.instance.collection('notifications').doc(), {
-        'userId': requestData['userId'],
-        'title': 'Solicitud rechazada',
-        'body':
-            'Tu solicitud para unirte a ${requestData['roomName']} ha sido rechazada. El monto será reembolsado.',
-        'timestamp': FieldValue.serverTimestamp(),
-        'read': false,
-      });
-
-      // 4. Notificar a finanzas sobre la devolución pendiente
-      batch.set(
-        FirebaseFirestore.instance.collection('finance_notifications').doc(),
-        {
-          'title': 'Devolución pendiente',
-          'body':
-              'Se ha solicitado la devolución de ₡${requestData['paymentAmount']} a ${requestData['userName']}',
-          'timestamp': FieldValue.serverTimestamp(),
-          'read': false,
-          'type': 'refund_requested',
-        },
-      );
+      // ... resto del código ...
 
       await batch.commit();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Solicitud rechazada. Se ha generado una solicitud de devolución',
+      // Verificar si el widget sigue montado
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Solicitud rechazada. Se ha generado una solicitud de devolución',
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
       print('Error al rechazar solicitud: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 

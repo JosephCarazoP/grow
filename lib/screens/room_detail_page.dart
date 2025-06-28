@@ -10,6 +10,7 @@ import 'package:grow/screens/user_profile_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../rooms/fitness/room_fitness_home_page.dart';
+import '../services/suscription_service.dart';
 import '../widgets/animated_gradiente_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,12 +41,428 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
       duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat();
+    _checkInitialSubscriptionStatus();
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  // Nuevo método para verificar al cargar la página
+  void _checkInitialSubscriptionStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Solo verificar si es miembro (no creador)
+    if (widget.roomData['creatorUid'] != user.uid) {
+      final isMember = await _isUserMember();
+      if (isMember) {
+        final subscriptionInfo =
+            await SubscriptionService.checkSubscriptionStatus(widget.roomId);
+
+        if (subscriptionInfo.status == SubscriptionStatus.gracePeriodExpired) {
+          // Mostrar modal bloqueante inmediatamente
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showSubscriptionExpiredDialog();
+          });
+        } else if (subscriptionInfo.status == SubscriptionStatus.gracePeriod) {
+          // Mostrar alerta de período de gracia
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showGracePeriodAlert(subscriptionInfo);
+          });
+        } else if (subscriptionInfo.status == SubscriptionStatus.active &&
+            subscriptionInfo.daysUntilExpiration != null &&
+            subscriptionInfo.daysUntilExpiration! <= 7) {
+          // Mostrar alerta de expiración próxima
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showExpirationWarningAlert(subscriptionInfo);
+          });
+        }
+      }
+    }
+  }
+
+  // Agregar estos métodos a RoomDetailsPage
+
+  void _showGracePeriodAlert(SubscriptionInfo subscriptionInfo) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        // Obtener dimensiones de la pantalla
+        final size = MediaQuery.of(context).size;
+        final isSmallDevice = size.width < 360;
+        final isMediumDevice = size.width >= 360 && size.width < 400;
+        final isLargeDevice = size.width >= 400;
+
+        // Ajustar tamaños según el dispositivo
+        final double titleFontSize = isSmallDevice ? 16 : (isMediumDevice ? 17 : 18);
+        final double contentFontSize = isSmallDevice ? 14 : (isMediumDevice ? 15 : 16);
+        final double smallTextSize = isSmallDevice ? 12 : (isMediumDevice ? 13 : 14);
+        final double iconSize = isSmallDevice ? 20 : (isMediumDevice ? 22 : 24);
+        final double buttonPaddingHorizontal = isSmallDevice ? 16 : 20;
+        final double buttonPaddingVertical = isSmallDevice ? 8 : 10;
+
+        return AlertDialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isSmallDevice ? 20 : 24,
+            vertical: 24,
+          ),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isSmallDevice ? 16 : 20,
+            vertical: isSmallDevice ? 16 : 20,
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.red, size: iconSize),
+              SizedBox(width: isSmallDevice ? 6 : 8),
+              Flexible(
+                child: Text(
+                  '¡Membresía Expirada!',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontSize: titleFontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tu membresía expiró el ${subscriptionInfo.expiresAt?.day}/${subscriptionInfo.expiresAt?.month}/${subscriptionInfo.expiresAt?.year}.',
+                  style: TextStyle(
+                    fontSize: contentFontSize,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: isSmallDevice ? 10 : 12),
+                Text(
+                  'Tienes un periodo de gracia de 3 días el cual finalizará el día ${subscriptionInfo.gracePeriodEndsAt?.day}/${subscriptionInfo.gracePeriodEndsAt?.month}/${subscriptionInfo.gracePeriodEndsAt?.year}.',
+                  style: TextStyle(fontSize: contentFontSize - 1),
+                ),
+                SizedBox(height: isSmallDevice ? 12 : 16),
+                Container(
+                  padding: EdgeInsets.all(isSmallDevice ? 10 : 12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        color: Colors.orange,
+                        size: iconSize - 4,
+                      ),
+                      SizedBox(width: isSmallDevice ? 6 : 8),
+                      Expanded(
+                        child: Text(
+                          subscriptionInfo.gracePeriodDaysLeft == 1
+                              ? 'Te queda 1 día de periodo de gracia'
+                              : 'Te quedan ${subscriptionInfo.gracePeriodDaysLeft} días de periodo de gracia',
+                          style: TextStyle(
+                            color: Colors.orange.shade700,
+                            fontSize: smallTextSize,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: isSmallDevice ? 16 : 20),
+                Center(
+                  child: Text(
+                    '¿Deseas renovar tu membresía ahora?',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: contentFontSize - 1,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actionsPadding: EdgeInsets.only(
+            left: isSmallDevice ? 8 : 12,
+            right: isSmallDevice ? 8 : 12,
+            bottom: isSmallDevice ? 12 : 16,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(
+                  horizontal: buttonPaddingHorizontal,
+                  vertical: buttonPaddingVertical,
+                ),
+              ),
+              child: Text(
+                'Más tarde',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: smallTextSize,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showRenewalPaymentModal();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: buttonPaddingHorizontal,
+                  vertical: buttonPaddingVertical,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(isSmallDevice ? 6 : 8),
+                ),
+              ),
+              child: Text(
+                'Renovar Ahora',
+                style: TextStyle(fontSize: smallTextSize),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showExpirationWarningAlert(SubscriptionInfo subscriptionInfo) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.orange, size: 28),
+                SizedBox(width: 12),
+                Text(
+                  'Suscripción por Expirar',
+                  style: TextStyle(color: Colors.orange),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Tu suscripción expira en ${subscriptionInfo.daysUntilExpiration} días.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Renueva antes del ${subscriptionInfo.expiresAt?.day}/${subscriptionInfo.expiresAt?.month} para evitar interrupciones.',
+                          style: TextStyle(
+                            color: Colors.orange.shade700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  '¿Deseas renovar tu suscripción ahora?',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Más tarde'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _showRenewalPaymentModal();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('Renovar Ahora'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _checkSubscriptionAndNavigate() async {
+    final subscriptionInfo = await SubscriptionService.checkSubscriptionStatus(
+      widget.roomId,
+    );
+
+    if (subscriptionInfo.status == SubscriptionStatus.gracePeriodExpired) {
+      // Mostrar modal de suscripción expirada
+      _showSubscriptionExpiredDialog();
+      return;
+    }
+
+    if (subscriptionInfo.status == SubscriptionStatus.gracePeriod ||
+        (subscriptionInfo.status == SubscriptionStatus.active &&
+            subscriptionInfo.daysUntilExpiration != null &&
+            subscriptionInfo.daysUntilExpiration! <= 7)) {
+      // Mostrar alerta pero permitir acceso
+      _showSubscriptionWarningAndNavigate(subscriptionInfo);
+      return;
+    }
+
+    // Si la suscripción está activa, navegar normalmente
+    _navigateToRoomContent();
+  }
+
+  void _showSubscriptionExpiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.block, color: Colors.red, size: 28),
+                SizedBox(width: 12),
+                Text('Acceso Restringido', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Tu suscripción y período de gracia han expirado. Necesitas renovar tu suscripción para continuar accediendo a esta sala.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  '¿Deseas renovar tu suscripción ahora?',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _showRenewalPaymentModal();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('Renovar'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showSubscriptionWarningAndNavigate(SubscriptionInfo subscriptionInfo) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  subscriptionInfo.status == SubscriptionStatus.gracePeriod
+                      ? Icons.warning
+                      : Icons.info_outline,
+                  color:
+                      subscriptionInfo.status == SubscriptionStatus.gracePeriod
+                          ? Colors.red
+                          : Colors.orange,
+                  size: 28,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  subscriptionInfo.status == SubscriptionStatus.gracePeriod
+                      ? 'Período de Gracia'
+                      : 'Suscripción por Expirar',
+                  style: TextStyle(
+                    color:
+                        subscriptionInfo.status ==
+                                SubscriptionStatus.gracePeriod
+                            ? Colors.red
+                            : Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              SubscriptionService.getStatusMessage(subscriptionInfo),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _navigateToRoomContent();
+                },
+                child: Text('Continuar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _showRenewalPaymentModal();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      subscriptionInfo.status == SubscriptionStatus.gracePeriod
+                          ? Colors.red
+                          : Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('Renovar'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showRenewalPaymentModal() {
+    final double renewalPrice = (widget.roomData['price'] ?? 0).toDouble();
+    final double discount = (widget.roomData['discount'] ?? 0).toDouble();
+    final double discountedPrice = renewalPrice * (1 - (discount / 100));
+
+    _displayPaymentModal(context, discountedPrice);
   }
 
   Future<void> _playWithSystemPlayer(
@@ -997,6 +1414,10 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
     if (user == null) return;
 
     try {
+      // Verificar si es una renovación
+      final isMember = await _isUserMember();
+      final requestType = isMember ? 'renewal' : 'new_membership';
+
       // 1. Subir la imagen a Storage
       final storageRef = FirebaseStorage.instance
           .ref()
@@ -1029,12 +1450,19 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
         'paymentReceiptUrl': downloadUrl,
         'requestedAt': FieldValue.serverTimestamp(),
         'status': 'pending',
+        'type': requestType, // Nuevo campo para distinguir renovaciones
       });
 
       // 4. Registrar notificación para el admin
       await FirebaseFirestore.instance.collection('finance_notifications').add({
-        'title': 'Nueva solicitud de membresía',
-        'body': '$userName quiere unirse a ${widget.roomData['name']}',
+        'title':
+            requestType == 'renewal'
+                ? 'Solicitud de renovación'
+                : 'Nueva solicitud de membresía',
+        'body':
+            requestType == 'renewal'
+                ? '$userName quiere renovar su suscripción en ${widget.roomData['name']}'
+                : '$userName quiere unirse a ${widget.roomData['name']}',
         'timestamp': FieldValue.serverTimestamp(),
         'read': false,
         'type': 'membership_request',
@@ -1043,9 +1471,14 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
       // 5. Notificar al usuario
       await FirebaseFirestore.instance.collection('notifications').add({
         'userId': user.uid,
-        'title': 'Solicitud enviada',
+        'title':
+            requestType == 'renewal'
+                ? 'Solicitud de renovación enviada'
+                : 'Solicitud enviada',
         'body':
-            'Tu solicitud para unirte a ${widget.roomData['name']} ha sido enviada. Te notificaremos cuando sea revisada.',
+            requestType == 'renewal'
+                ? 'Tu solicitud de renovación para ${widget.roomData['name']} ha sido enviada.'
+                : 'Tu solicitud para unirte a ${widget.roomData['name']} ha sido enviada. Te notificaremos cuando sea revisada.',
         'timestamp': FieldValue.serverTimestamp(),
         'read': false,
       });
@@ -1053,8 +1486,12 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
       // Cerrar modal y mostrar mensaje de éxito
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Solicitud enviada correctamente'),
+        SnackBar(
+          content: Text(
+            requestType == 'renewal'
+                ? 'Solicitud de renovación enviada correctamente'
+                : 'Solicitud enviada correctamente',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -1115,13 +1552,31 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return false;
 
-    // First check if user is creator/admin (this doesn't require querying members collection)
+    print(
+      'DEBUG: Verificando membresía local para sala ${widget.roomId}, usuario $userId',
+    );
+
+    // Verificar si es el creador
     if (widget.roomData['creatorUid'] == userId) {
+      print('DEBUG: El usuario es el creador de la sala');
       return true;
     }
 
     try {
-      // Check user's salasUnidas collection (this avoids permission issues with members collection)
+      // Buscar en la colección members principal
+      final membersQuery =
+          await FirebaseFirestore.instance
+              .collection('members')
+              .where('userId', isEqualTo: userId)
+              .where('roomId', isEqualTo: widget.roomId)
+              .get();
+
+      if (membersQuery.docs.isNotEmpty) {
+        print('DEBUG: Membresía encontrada en la colección members');
+        return true;
+      }
+
+      // Si no se encuentra, verificar en salasUnidas como respaldo
       final userRoomDoc =
           await FirebaseFirestore.instance
               .collection('usuarios')
@@ -1131,26 +1586,14 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
               .get();
 
       if (userRoomDoc.exists) {
+        print('DEBUG: Membresía encontrada en salasUnidas');
         return true;
       }
 
-      // Only if necessary, try to check members collection
-      try {
-        final memberDoc =
-            await FirebaseFirestore.instance
-                .collection('rooms')
-                .doc(widget.roomId)
-                .collection('members')
-                .doc(userId)
-                .get();
-        return memberDoc.exists;
-      } catch (e) {
-        // If there's a permission error, we fall back to the other checks
-        print('Error checking members collection: $e');
-        return false;
-      }
+      print('DEBUG: El usuario no es miembro de la sala');
+      return false;
     } catch (e) {
-      print('Error in _isUserMember: $e');
+      print('DEBUG: Error checking membership: $e');
       return false;
     }
   }
@@ -1320,12 +1763,15 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
-                                    onPressed: () => Navigator.of(context).pop(),
+                                    onPressed:
+                                        () => Navigator.of(context).pop(),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF0F172A),
                                       foregroundColor: Colors.white,
                                       elevation: 0,
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),
                                       ),
@@ -1429,18 +1875,64 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
 
               // Animated Join Button
               // Animated Join Button
+              // Reemplazar el FutureBuilder existente con este:
+              // Actualizar el FutureBuilder del botón para que se refresque
               FutureBuilder<bool>(
                 future: _isUserMember(),
                 builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    );
+                  }
+
                   final bool isMember = snapshot.data ?? false;
-                  return AnimatedGradientButton(
-                    text: isMember ? 'Entrar' : 'Unirme a la sala',
-                    onPressed: () {
-                      if (isMember) {
-                        _navigateToRoomContent();
-                      } else {
-                        _showJoinRoomDialog(context, discountedPrice);
+
+                  return FutureBuilder<SubscriptionInfo>(
+                    future:
+                        isMember
+                            ? SubscriptionService.checkSubscriptionStatus(
+                              widget.roomId,
+                            )
+                            : null,
+                    builder: (context, subscriptionSnapshot) {
+                      // Si es miembro pero la suscripción está completamente expirada, mostrar botón de renovación
+                      if (isMember &&
+                          subscriptionSnapshot.hasData &&
+                          subscriptionSnapshot.data!.status ==
+                              SubscriptionStatus.gracePeriodExpired) {
+                        return AnimatedGradientButton(
+                          text: 'Renovar Suscripción',
+                          onPressed: () => _showRenewalPaymentModal(),
+                        );
                       }
+
+                      return AnimatedGradientButton(
+                        text:
+                            isMember ? 'Entrar a la Sala' : 'Unirme a la Sala',
+                        onPressed: () {
+                          if (isMember) {
+                            _checkSubscriptionAndNavigate();
+                          } else {
+                            final double price =
+                                (widget.roomData['price'] ?? 0).toDouble();
+                            final double discount =
+                                (widget.roomData['discount'] ?? 0).toDouble();
+                            final double discountedPrice =
+                                price * (1 - (discount / 100));
+                            _showJoinRoomDialog(context, discountedPrice);
+                          }
+                        },
+                      );
                     },
                   );
                 },

@@ -23,16 +23,92 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscureText = true;
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.black87,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.red.shade600,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Error de inicio de sesión',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[900],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
-
   Future<void> login() async {
     setState(() => isLoading = true);
 
@@ -76,51 +152,87 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (_) => const HomeHubPage()),
         );
       } else {
-        // Search for the "Discipline" room with "oficial" field set to true
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('rooms')
-            .where('name', isEqualTo: 'Discipline')
-            .where('oficial', isEqualTo: true)
-            .get();
+        // Check if this is the user's first login by checking account creation time
+        final accountCreatedAt = userCredential.user!.metadata.creationTime;
+        final now = DateTime.now();
+        final timeDifference = now.difference(accountCreatedAt!);
 
-        if (querySnapshot.docs.isNotEmpty) {
-          final roomData = querySnapshot.docs.first.data();
-          final roomId = querySnapshot.docs.first.id;
+        // If account was created less than 5 minutes ago, consider it a new user
+        final isNewUser = timeDifference.inMinutes < 5;
 
-          // Redirect to room_detail_page
+        // Also check SharedPreferences as backup
+        final hasSeenIntro = await prefs.getBool('hasSeenIntro') ?? false;
+
+        if (isNewUser || !hasSeenIntro) {
+          // First time user - show introduction
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (_) => GrowIntroScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => GrowIntroScreen()),
           );
         } else {
-          _showError("No se encontró la sala oficial 'Discipline'.");
-          setState(() => isLoading = false);
+          // Returning user - go directly to Discipline room
+          final querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('rooms')
+              .where('name', isEqualTo: 'Discipline')
+              .where('oficial', isEqualTo: true)
+              .get();
+
+          if (querySnapshot.docs.isNotEmpty) {
+            final roomData = querySnapshot.docs.first.data();
+            final roomId = querySnapshot.docs.first.id;
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (_) => RoomDetailsPage(roomId: roomId, roomData: roomData),
+              ),
+            );
+          } else {
+            _showError("No se encontró la sala oficial 'Discipline'.");
+            setState(() => isLoading = false);
+          }
         }
       }
-
-      // Commented logic for future use
-      /*
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeHubPage()),
-    );
-    */
     } on FirebaseAuthException catch (e) {
       setState(() => isLoading = false);
 
       String message = switch (e.code) {
-        'user-not-found' => 'No existe una cuenta con este correo.',
-        'wrong-password' => 'Contraseña incorrecta.',
-        'invalid-email' => 'Correo inválido.',
-        _ => 'Error al iniciar sesión: ${e.message}',
+        'user-not-found' => 'No existe una cuenta con este correo.\nVerifica que esté bien escrito o regístrate.',
+        'wrong-password' => 'Contraseña incorrecta.\nRevisa tu contraseña e intenta nuevamente.',
+        'invalid-email' => 'El formato del correo es inválido.\nEjemplo: usuario@gmail.com',
+        'user-disabled' => 'Esta cuenta ha sido deshabilitada.\nContacta al soporte para más información.',
+        'too-many-requests' => 'Demasiados intentos fallidos.\nPor seguridad, intenta más tarde.',
+        'network-request-failed' => 'Error de conexión.\nVerifica tu conexión a internet e intenta de nuevo.',
+        'invalid-credential' => 'Las credenciales son incorrectas.\nRevisa tu correo y contraseña.',
+        'operation-not-allowed' => 'Operación no permitida.\nContacta al administrador.',
+        'weak-password' => 'La contraseña es muy débil.\nDebe tener al menos 6 caracteres.',
+        _ => 'Error al iniciar sesión.\nCódigo: ${e.code}',
       };
 
       _showError(message);
     } catch (e) {
       setState(() => isLoading = false);
-      _showError('Error inesperado: $e');
+
+      // Manejar errores de red específicos
+      if (e.toString().contains('network error') ||
+          e.toString().contains('timeout') ||
+          e.toString().contains('interrupted connection') ||
+          e.toString().contains('unreachable host')) {
+        _showError(
+            'Sin conexión a internet.\nVerifica tu conexión e intenta nuevamente.'
+        );
+      } else if (e.toString().contains('RecaptchaCallWrapper') ||
+          e.toString().contains('recaptcha')) {
+        _showError(
+            'Error de verificación de seguridad.\nIntenta nuevamente en unos momentos.'
+        );
+      } else {
+        _showError(
+            'Ocurrió un error inesperado.\nIntenta nuevamente más tarde.'
+        );
+      }
     }
   }
 

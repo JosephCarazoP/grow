@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../services/suscription_service.dart';
+import '../../../widgets/suscription_alert.dart';
 import '../components/community_post.dart';
 import '../models/workout.dart';
 import '../screens/post_detail_page.dart';
@@ -31,11 +33,88 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Workout> userWorkouts = [];
   bool isLoading = true;
+  SubscriptionInfo? subscriptionInfo;
 
   @override
   void initState() {
     super.initState();
-    _loadWorkouts();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _loadWorkouts(),
+      _checkSubscriptionStatus(),
+    ]);
+  }
+
+  Future<void> _checkSubscriptionStatus() async {
+    final info = await SubscriptionService.checkSubscriptionStatus(
+      widget.roomData['id'] ?? '',
+    );
+
+    if (mounted) {
+      setState(() {
+        subscriptionInfo = info;
+      });
+    }
+  }
+
+  void _handleRenewal() {
+    // Navegar al proceso de renovación
+    final double price = (widget.roomData['price'] ?? 0).toDouble();
+    final double discount = (widget.roomData['discount'] ?? 0).toDouble();
+    final double discountedPrice = price * (1 - (discount / 100));
+
+    _showRenewalDialog(context, discountedPrice);
+  }
+
+  void _showRenewalDialog(BuildContext context, double price) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Renovar suscripción'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('¿Deseas renovar tu suscripción a esta sala?'),
+            const SizedBox(height: 16),
+            Text(
+              'Precio: ₡${price.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Aquí implementarías el proceso de pago para renovación
+              _processRenewal(price);
+            },
+            child: const Text('Renovar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processRenewal(double price) async {
+    // Implementar lógica de renovación - similar al proceso de pago original
+    // pero marcando que es una renovación para no perder datos
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Proceso de renovación iniciado...'),
+      ),
+    );
   }
 
   Future<void> _loadWorkouts() async {
@@ -175,7 +254,7 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: _loadWorkouts,
+      onRefresh: _loadData,
       color: Colors.blue,
       backgroundColor: Colors.black,
       child: SingleChildScrollView(
@@ -183,6 +262,13 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Alerta de suscripción
+            if (subscriptionInfo != null)
+              SubscriptionAlert(
+                subscriptionInfo: subscriptionInfo!,
+                onRenewPressed: _handleRenewal,
+              ),
+
             _buildWelcomeBanner(context),
             const SizedBox(height: 24),
             _buildUserWorkouts(context),

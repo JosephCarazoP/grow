@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:grow/screens/room_detail_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GrowIntroScreen extends StatefulWidget {
   @override
@@ -606,6 +607,10 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
                             curve: Curves.easeInOut,
                           );
                         } else {
+                          // Mark that user has seen the introduction
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('hasSeenIntro', true);
+
                           // Fetch the room with name "Discipline" and "oficial" set to true
                           final querySnapshot =
                               await FirebaseFirestore.instance
@@ -619,7 +624,7 @@ class _GrowIntroScreenState extends State<GrowIntroScreen>
                             final roomId = querySnapshot.docs.first.id;
 
                             // Navigate to RoomDetailsPage
-                            Navigator.push(
+                            Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
                                 builder:
