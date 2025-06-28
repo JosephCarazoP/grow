@@ -1550,9 +1550,7 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return false;
 
-    print(
-      'DEBUG: Verificando membresía local para sala ${widget.roomId}, usuario $userId',
-    );
+    print('DEBUG: Verificando membresía para sala ${widget.roomId}, usuario $userId');
 
     // Verificar si es el creador
     if (widget.roomData['creatorUid'] == userId) {
@@ -1561,37 +1559,51 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
     }
 
     try {
-      // Buscar en la colección members principal
-      final membersQuery =
-          await FirebaseFirestore.instance
-              .collection('members')
-              .where('userId', isEqualTo: userId)
-              .where('roomId', isEqualTo: widget.roomId)
-              .get();
+      // Verificar en la colección members principal
+      final membersQuery = await FirebaseFirestore.instance
+          .collection('members')
+          .where('userId', isEqualTo: userId)
+          .where('roomId', isEqualTo: widget.roomId)
+          .limit(1)
+          .get();
 
-      if (membersQuery.docs.isNotEmpty) {
-        print('DEBUG: Membresía encontrada en la colección members');
-        return true;
+      if (membersQuery.docs.isEmpty) {
+        print('DEBUG: No se encontró registro de membresía');
+        // Limpiar cualquier referencia obsoleta en salasUnidas
+        await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(userId)
+            .collection('salasUnidas')
+            .doc(widget.roomId)
+            .delete()
+            .catchError((error) => print('Error limpiando salasUnidas: $error'));
+        return false;
       }
 
-      // Si no se encuentra, verificar en salasUnidas como respaldo
-      final userRoomDoc =
-          await FirebaseFirestore.instance
-              .collection('usuarios')
-              .doc(userId)
-              .collection('salasUnidas')
-              .doc(widget.roomId)
-              .get();
+      // Verificar el status de la membresía
+      final memberData = membersQuery.docs.first.data();
+      final status = memberData['status'] as String?;
 
-      if (userRoomDoc.exists) {
-        print('DEBUG: Membresía encontrada en salasUnidas');
-        return true;
+      print('DEBUG: Status de membresía: $status');
+
+      // Solo considerar como miembro si el status es "active"
+      final isActiveMember = status == 'active';
+
+      if (!isActiveMember) {
+        print('DEBUG: Membresía inactiva, limpiando salasUnidas');
+        // Si la membresía no está activa, limpiar salasUnidas
+        await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(userId)
+            .collection('salasUnidas')
+            .doc(widget.roomId)
+            .delete()
+            .catchError((error) => print('Error limpiando salasUnidas: $error'));
       }
 
-      print('DEBUG: El usuario no es miembro de la sala');
-      return false;
+      return isActiveMember;
     } catch (e) {
-      print('DEBUG: Error checking membership: $e');
+      print('ERROR: Error checking membership: $e');
       return false;
     }
   }
