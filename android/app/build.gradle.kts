@@ -51,6 +51,16 @@ android {
         }
     }
 
+    // Agregar configuración de splits para generar APKs por arquitectura
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true // Genera también un APK universal
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
