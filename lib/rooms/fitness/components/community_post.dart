@@ -756,17 +756,125 @@ class _CommunityPostState extends State<CommunityPost> {
                       ),
                     ),
                 ],
-            onSelected: (value) {
-              if (value == 'delete') {
-                // Implement delete functionality
-              } else if (value == 'report') {
-                // Implement report functionality
-              }
-            },
+              onSelected: (value) async {
+                if (value == 'delete') {
+                  await _deletePost();
+                } else if (value == 'report') {
+                  // Implement report functionality
+                }
+              },
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _deletePost() async {
+    // Mostrar diálogo de confirmación
+    final bool? confirmDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        title: const Text(
+          'Eliminar publicación',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '¿Estás seguro que deseas eliminar esta publicación? Esta acción no se puede deshacer.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.blue.shade300),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmDelete != true) return;
+
+    // Mostrar indicador de carga
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+
+    try {
+      // Eliminar el post
+      await _firestore.collection('posts').doc(widget.postId).delete();
+
+      // Eliminar todos los comentarios del post
+      final commentsSnapshot = await _firestore
+          .collection('posts')
+          .doc(widget.postId)
+          .collection('comments')
+          .get();
+
+      for (var doc in commentsSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Eliminar todos los likes del post
+      final likesSnapshot = await _firestore
+          .collection('likes')
+          .where('postId', isEqualTo: widget.postId)
+          .get();
+
+      for (var doc in likesSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Eliminar todos los reposts de este post
+      final repostsSnapshot = await _firestore
+          .collection('reposts')
+          .where('originalPostId', isEqualTo: widget.postId)
+          .get();
+
+      for (var doc in repostsSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Cerrar diálogo de carga
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // Mostrar mensaje de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Publicación eliminada exitosamente'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Volver a la pantalla anterior si es necesario
+      if (widget.autoShowComments) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      // Cerrar diálogo de carga
+      Navigator.of(context, rootNavigator: true).pop();
+
+      print('Error al eliminar post: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al eliminar la publicación: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildMediaGrid(List<Map<String, dynamic>> allMedia) {
@@ -1405,25 +1513,72 @@ class _CommunityPostState extends State<CommunityPost> {
     );
 
     try {
+      final String roomId = _postData?['roomId'] ?? '';
+
+      // Verificar si el usuario es miembro de la sala o tiene permisos especiales
+      bool canPost = false;
+
+      // Primero verificar si es owner o admin (más eficiente)
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .get();
+
+      final userRole = userDoc.data()?['role'];
+      if (userRole == 'owner' || userRole == 'admin') {
+        canPost = true;
+      } else {
+        // Si no es owner/admin, verificar membresía
+        // Opción 1: Si los IDs de members están en formato roomId_userId
+        try {
+          final memberDoc = await _firestore
+              .collection('members')
+              .doc('${roomId}_$currentUserId')
+              .get();
+
+          if (memberDoc.exists) {
+            canPost = true;
+          }
+        } catch (e) {
+          // Si falla, intentar con una consulta
+          final memberQuery = await _firestore
+              .collection('members')
+              .where('roomId', isEqualTo: roomId)
+              .where('userId', isEqualTo: currentUserId)
+              .limit(1)
+              .get();
+
+          if (memberQuery.docs.isNotEmpty) {
+            canPost = true;
+          }
+        }
+      }
+
+      if (!canPost) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Debes ser miembro de la sala para repostear'),
+          ),
+        );
+        return;
+      }
+
       // 1. Crear entrada en la colección reposts
       final repostData = {
         'userId': currentUserId,
         'originalPostId': widget.postId,
-        'roomId': _postData?['roomId'],
+        'roomId': roomId,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
       final repostDoc = await _firestore.collection('reposts').add(repostData);
 
-      // 2. Obtener datos del usuario
-      final userDoc =
-          await _firestore.collection('users').doc(currentUserId).get();
-
-      // 3. Crear nuevo post con la referencia al original
+      // 2. Crear nuevo post con la referencia al original
       final newPostData = {
         'content': '',
         'userId': currentUserId,
-        'roomId': _postData?['roomId'],
+        'roomId': roomId,
         'createdAt': FieldValue.serverTimestamp(),
         'likesCount': 0,
         'commentsCount': 0,
@@ -1440,8 +1595,7 @@ class _CommunityPostState extends State<CommunityPost> {
 
       await _firestore.collection('posts').add(newPostData);
 
-      // 4. IMPORTANTE: Actualizar SOLO el contador de reposts
-      // Esta operación debe cumplir con tus reglas de seguridad
+      // 3. Actualizar SOLO el contador de reposts
       await _firestore.collection('posts').doc(widget.postId).update({
         'repostsCount': FieldValue.increment(1),
       });
@@ -1461,9 +1615,9 @@ class _CommunityPostState extends State<CommunityPost> {
       // Cerrar diálogo de carga
       Navigator.of(context, rootNavigator: true).pop();
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al repostear: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al repostear: $e')),
+      );
     }
   }
 

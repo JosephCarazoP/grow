@@ -285,11 +285,11 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
           (context) => AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.orange, size: 28),
+                Icon(Icons.info_outline, color: Colors.orange, size: 19),
                 SizedBox(width: 12),
                 Text(
                   'Suscripción por Expirar',
-                  style: TextStyle(color: Colors.orange),
+                  style: TextStyle(color: Colors.orange, fontSize: 16),
                 ),
               ],
             ),
@@ -444,7 +444,7 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
                       subscriptionInfo.status == SubscriptionStatus.gracePeriod
                           ? Colors.red
                           : Colors.orange,
-                  size: 28,
+                  size: 20,
                 ),
                 SizedBox(width: 12),
                 Text(
@@ -452,6 +452,7 @@ class _RoomDetailsPageState extends State<RoomDetailsPage>
                       ? 'Período de Gracia'
                       : 'Suscripción por Expirar',
                   style: TextStyle(
+                    fontSize: 17,
                     color:
                         subscriptionInfo.status ==
                                 SubscriptionStatus.gracePeriod

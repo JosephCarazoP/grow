@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../services/workout_tracking_service.dart';
 import '../screens/workout_completion_screen.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -8,11 +10,13 @@ import '../models/workout.dart';
 class WorkoutSessionScreen extends StatefulWidget {
   final Workout workout;
   final int? dayIndex;
+  final String roomId;
 
   const WorkoutSessionScreen({
     Key? key,
     required this.workout,
     this.dayIndex,
+    required this.roomId,
   }) : super(key: key);
 
   @override
@@ -29,6 +33,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   late Animation<double> _slideAnimation;
   late Animation<double> _pulseAnimation;
   late Animation<double> _rotationAnimation;
+  Set<String> _completedDays = {};
 
   int _currentExerciseIndex = -1;
   int? _selectedDayIndex;
@@ -41,6 +46,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   int _countdown = 5;
   Timer? _countdownTimer;
 
+  @override
   @override
   void initState() {
     super.initState();
@@ -90,9 +96,19 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     _slideController.forward();
 
     _loadPreviousWeights();
+    _loadCompletedDays(); // Agregar esta línea
 
     if (!_showDaySelection) {
       _startCountdown();
+    }
+  }
+
+  Future<void> _loadCompletedDays() async {
+    final completed = await WorkoutTrackingService.getCompletedDays(widget.workout.id);
+    if (mounted) {
+      setState(() {
+        _completedDays = completed;
+      });
     }
   }
 
@@ -172,18 +188,71 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   void _completeWorkout() async {
     setState(() => _isLoading = true);
 
-    // Navegación corregida
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => WorkoutCompletionScreen(
-            workout: widget.workout,
-            dayName: _currentDay.dayName,
-            weights: _weights,
+    try {
+      // Obtener el roomId correcto
+      String actualRoomId = '';
+
+      // Primero intentar obtener el roomId del workout
+      final workoutDoc = await FirebaseFirestore.instance
+          .collection('workouts')
+          .doc(widget.workout.id)
+          .get();
+
+      if (workoutDoc.exists) {
+        actualRoomId = workoutDoc.data()?['roomId'] ?? '';
+      }
+
+      // Si no se encontró, buscar la sala fitness
+      if (actualRoomId.isEmpty) {
+        final roomSnapshot = await FirebaseFirestore.instance
+            .collection('rooms')
+            .where('type', isEqualTo: 'fitness')
+            .limit(1)
+            .get();
+
+        if (roomSnapshot.docs.isNotEmpty) {
+          actualRoomId = roomSnapshot.docs.first.id;
+        }
+      }
+
+      // Navegación con el roomId correcto
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WorkoutCompletionScreen(
+              workout: widget.workout,
+              dayName: _currentDay.dayName,
+              weights: _weights,
+              dayNumber: (_selectedDayIndex ?? 0) + 1,
+              duration: widget.workout.durationMinutes,
+              caloriesBurned: widget.workout.durationMinutes * 5, // Estimated calories
+              score: 85, // Default score
+              roomId: actualRoomId, // Usar el roomId obtenido
+            ),
           ),
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      print('Error getting roomId: $e');
+      // En caso de error, navegar de todos modos con string vacío
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WorkoutCompletionScreen(
+              workout: widget.workout,
+              dayName: _currentDay.dayName,
+              weights: _weights,
+              dayNumber: (_selectedDayIndex ?? 0) + 1,
+              duration: widget.workout.durationMinutes,
+              caloriesBurned: widget.workout.durationMinutes * 5,
+              score: 85,
+              roomId: '', // Se manejará en WorkoutCompletionScreen
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -210,110 +279,217 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   }
 
   Widget _buildDaySelectionScreen() {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    return Container(
+      color: Colors.black,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close, color: Colors.white),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+            // Header ultra minimalista
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.06),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: Colors.white.withOpacity(0.6),
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 40),
-            const Text(
-              'Selecciona el día',
+
+            const SizedBox(height: 60),
+
+            // Título simple y elegante
+            Text(
+              'Selecciona tu día',
               style: TextStyle(
                 fontSize: 32,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w300,
                 color: Colors.white,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Elige qué entrenamiento realizarás hoy',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 32),
+
+            const SizedBox(height: 60),
+
+            // Lista de días con diseño limpio
             Expanded(
               child: ListView.builder(
                 itemCount: widget.workout.days.length,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                physics: const BouncingScrollPhysics(),
                 itemBuilder: (context, index) {
                   final day = widget.workout.days[index];
+                  final hasWarmup = day.warmup != null && day.warmup!.isNotEmpty;
+                  final isCompleted = _completedDays.contains(day.dayName);
+
                   return GestureDetector(
-                    onTap: () => _selectDay(index),
+                    onTap: () {  // Removida la condición isCompleted ? null :
+                      HapticFeedback.selectionClick();
+                      _selectDay(index);
+                    },
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 16),
+                      height: 100,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.grey.shade900,
-                            Colors.grey.shade800,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
+                        color: isCompleted
+                            ? Colors.green.withOpacity(0.08)
+                            : Colors.white.withOpacity(0.02),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
+                          color: isCompleted
+                              ? Colors.green.withOpacity(0.3)
+                              : Colors.white.withOpacity(0.1),
+                          width: 1,
                         ),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Row(
                           children: [
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${index + 1}',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
-                                  ),
+                            // Número del día o check
+                            if (isCompleted)
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.green,
+                                  size: 28,
+                                ),
+                              )
+                            else
+                              Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.w200,
+                                  color: Colors.white.withOpacity(0.2),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 20),
+
+                            const SizedBox(width: 24),
+
+                            // Información
                             Expanded(
                               child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    day.dayName,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        day.dayName,
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w500,
+                                          color: isCompleted
+                                              ? Colors.green
+                                              : Colors.white,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                      if (isCompleted) ...[
+                                        const SizedBox(width: 12),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Text(
+                                            'COMPLETADO',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${day.exercises.length} ejercicios',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white.withOpacity(0.6),
-                                    ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '${day.exercises.length} ejercicios',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white.withOpacity(0.4),
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                      if (hasWarmup) ...[
+                                        Text(
+                                          '  •  ',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.2),
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.whatshot,
+                                          size: 14,
+                                          color: Colors.white.withOpacity(0.4),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Calentamiento',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white.withOpacity(0.4),
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.white.withOpacity(0.3),
-                              size: 20,
+
+                            // Indicador sutil
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: isCompleted
+                                      ? Colors.green.withOpacity(0.3)
+                                      : Colors.white.withOpacity(0.1),
+                                  width: 1,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isCompleted ? Icons.refresh : Icons.arrow_forward,  // Cambio de icono
+                                size: 16,
+                                color: isCompleted
+                                    ? Colors.green
+                                    : Colors.white.withOpacity(0.3),
+                              ),
                             ),
                           ],
                         ),
@@ -323,6 +499,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                 },
               ),
             ),
+
+            // Espacio inferior
+            const SizedBox(height: 40),
           ],
         ),
       ),

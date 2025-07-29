@@ -73,37 +73,38 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Renovar suscripción'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('¿Deseas renovar tu suscripción a esta sala?'),
-            const SizedBox(height: 16),
-            Text(
-              'Precio: ₡${price.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+      builder: (context) =>
+          AlertDialog(
+            title: const Text('Renovar suscripción'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('¿Deseas renovar tu suscripción a esta sala?'),
+                const SizedBox(height: 16),
+                Text(
+                  'Precio: ₡${price.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Aquí implementarías el proceso de pago para renovación
+                  _processRenewal(price);
+                },
+                child: const Text('Renovar'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Aquí implementarías el proceso de pago para renovación
-              _processRenewal(price);
-            },
-            child: const Text('Renovar'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -239,7 +240,7 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
   List<Exercise> _parseExercises(List<dynamic> exercisesData) {
     return exercisesData.map((exerciseData) {
       final Map<String, dynamic> exercise =
-          exerciseData as Map<String, dynamic>;
+      exerciseData as Map<String, dynamic>;
       return Exercise(
         name: exercise['name'] ?? '',
         sets: exercise['sets'] ?? 1,
@@ -275,7 +276,10 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
             const SizedBox(height: 32),
             _buildCommunityActivity(context),
             const SizedBox(height: 32),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 10),
+            SizedBox(height: MediaQuery
+                .of(context)
+                .padding
+                .bottom + 10),
           ],
         ),
       ),
@@ -290,10 +294,11 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
           context,
           MaterialPageRoute(
             builder:
-                (context) => PostDetailPage(
+                (context) =>
+                PostDetailPage(
                   postId: postId,
                   roomId:
-                      widget.roomData['id'] ??
+                  widget.roomData['id'] ??
                       '', // Añade un valor predeterminado
                 ),
           ),
@@ -307,14 +312,16 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
           height: 200,
           fit: BoxFit.cover,
           placeholder:
-              (context, url) => Container(
+              (context, url) =>
+              Container(
                 color: Colors.grey[850],
                 child: const Center(
                   child: CircularProgressIndicator(color: Colors.white70),
                 ),
               ),
           errorWidget:
-              (context, url, error) => Container(
+              (context, url, error) =>
+              Container(
                 color: Colors.grey[850],
                 child: const Icon(Icons.error, color: Colors.white70),
               ),
@@ -337,10 +344,11 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                 context,
                 MaterialPageRoute(
                   builder:
-                      (context) => PostDetailPage(
+                      (context) =>
+                      PostDetailPage(
                         postId: postId, // Asegúrate de que postId no sea nulo
                         roomId:
-                            widget.roomData['id'] ??
+                        widget.roomData['id'] ??
                             '', // Proporciona un valor predeterminado
                       ),
                 ),
@@ -355,7 +363,8 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                   imageUrl: imageUrls[index],
                   fit: BoxFit.cover,
                   placeholder:
-                      (context, url) => Container(
+                      (context, url) =>
+                      Container(
                         color: Colors.grey[850],
                         child: const Center(
                           child: CircularProgressIndicator(
@@ -365,7 +374,8 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                         ),
                       ),
                   errorWidget:
-                      (context, url, error) => Container(
+                      (context, url, error) =>
+                      Container(
                         color: Colors.grey[850],
                         child: const Icon(Icons.error, color: Colors.white70),
                       ),
@@ -416,258 +426,87 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
             alignment: Alignment.center,
             child: const CircularProgressIndicator(color: Colors.white),
           )
-        else if (userWorkouts.isEmpty)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.fitness_center_outlined,
-                  size: 48,
-                  color: Colors.white.withOpacity(0.7),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'No tienes rutinas asignadas',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Explora las rutinas disponibles o solicita una personalizada',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white.withOpacity(0.7)),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => FitnessRoutinesTab(
-                                  roomData: widget.roomData,
-                                  navigateToSection: widget.navigateToSection,
-                                  userId: widget.userId,
-                                ),
-                          ),
-                        ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade600,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Explorar rutinas',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
         else
-          SizedBox(
-            height: 180, // Reduced height to prevent overflow
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: userWorkouts.length,
-              itemBuilder:
-                  (context, index) => _buildWorkoutCard(userWorkouts[index]),
-            ),
-          ),
-      ],
-    );
-  }
-
-  void _showAllWorkoutsModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.85,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Barra superior con título y botón de cerrar
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Todas tus rutinas',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+          if (userWorkouts.isEmpty)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.fitness_center_outlined,
+                    size: 48,
+                    color: Colors.white.withOpacity(0.7),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No tienes rutinas asignadas',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Explora las rutinas disponibles o solicita una personalizada',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed:
+                          () =>
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                  FitnessRoutinesTab(
+                                    roomData: widget.roomData,
+                                    navigateToSection: widget.navigateToSection,
+                                    userId: widget.userId,
+                                  ),
+                            ),
+                          ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Explorar rutinas',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const Divider(color: Colors.white10),
-
-              // Lista de rutinas
-              Expanded(
-                child:
-                    userWorkouts.isEmpty
-                        ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.fitness_center_outlined,
-                                size: 64,
-                                color: Colors.white.withOpacity(0.5),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No tienes rutinas asignadas',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                        : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: userWorkouts.length,
-                          itemBuilder: (context, index) {
-                            final workout = userWorkouts[index];
-                            return _buildWorkoutListItem(workout, context);
-                          },
-                        ),
+            )
+          else
+            SizedBox(
+              height: 180, // Reduced height to prevent overflow
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: userWorkouts.length,
+                itemBuilder:
+                    (context, index) => _buildWorkoutCard(userWorkouts[index]),
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildWorkoutListItem(Workout workout, BuildContext context) {
-    Color categoryColor = workout.getCategoryColor();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: CachedNetworkImage(
-            imageUrl: workout.imageUrl,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
-            placeholder:
-                (context, url) => Container(
-                  color: Colors.grey.shade900,
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      color: Colors.white70,
-                      strokeWidth: 2,
-                    ),
-                  ),
-                ),
-            errorWidget:
-                (context, url, error) => Container(
-                  color: Colors.grey.shade900,
-                  child: const Icon(Icons.error_outline, color: Colors.white70),
-                ),
-          ),
-        ),
-        title: Text(
-          workout.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: categoryColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    workout.category,
-                    style: TextStyle(fontSize: 10, color: categoryColor),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${workout.durationMinutes} min • ${workout.days.length} días',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
             ),
-          ],
-        ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-        onTap: () {
-          Navigator.pop(context); // Cierra el modal
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => WorkoutDetailScreen(
-                    workout: workout,
-                    onStart: () {
-                      // Lógica para iniciar el entrenamiento
-                    },
-                  ),
-            ),
-          );
-        },
-      ),
+      ],
     );
   }
 
@@ -688,12 +527,14 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
             context,
             MaterialPageRoute(
               builder:
-                  (context) => WorkoutDetailScreen(
-                    workout: workout,
-                    onStart: () {
-                      // Logic to start workout
-                    },
-                  ),
+                  (context) =>
+                      WorkoutDetailScreen(
+                        workout: workout,
+                        roomId: widget.roomData['id'] ?? '',
+                        onStart: () {
+                          // Logic to start workout
+                        },
+                      ),
             ),
           );
         },
@@ -713,7 +554,8 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                 width: double.infinity,
                 fit: BoxFit.cover,
                 placeholder:
-                    (context, url) => Container(
+                    (context, url) =>
+                    Container(
                       color: Colors.grey.shade900,
                       height: 100,
                       child: const Center(
@@ -724,7 +566,8 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                       ),
                     ),
                 errorWidget:
-                    (context, url, error) => Container(
+                    (context, url, error) =>
+                    Container(
                       color: Colors.grey.shade900,
                       height: 100,
                       child: const Icon(
@@ -777,9 +620,9 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                           ),
                           decoration: BoxDecoration(
                             color:
-                                workout.type == WorkoutType.personalized
-                                    ? Colors.purple.withOpacity(0.2)
-                                    : Colors.blue.withOpacity(0.2),
+                            workout.type == WorkoutType.personalized
+                                ? Colors.purple.withOpacity(0.2)
+                                : Colors.blue.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -788,9 +631,9 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                                 : 'RETO',
                             style: TextStyle(
                               color:
-                                  workout.type == WorkoutType.personalized
-                                      ? Colors.purple
-                                      : Colors.blue,
+                              workout.type == WorkoutType.personalized
+                                  ? Colors.purple
+                                  : Colors.blue,
                               fontWeight: FontWeight.bold,
                               fontSize: 10,
                             ),
@@ -818,7 +661,8 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
 
                   // Duration
                   Text(
-                    '${workout.durationMinutes} min • ${workout.days.length} días',
+                    '${workout.durationMinutes} min • ${workout.days
+                        .length} días',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 11,
@@ -836,20 +680,32 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
   // Keep all existing methods
   Widget _buildWelcomeBanner(BuildContext context) {
     final roomName = widget.roomData['name'] ?? 'Fitness';
-    final String shortDescription = widget.roomData['shortDescription'] ?? 'Tu espacio personal para transformar tu cuerpo y mente';
-    final String longDescription = widget.roomData['longDescription'] ?? shortDescription;
+    final String shortDescription = widget.roomData['shortDescription'] ??
+        'Tu espacio personal para transformar tu cuerpo y mente';
+    final String longDescription = widget.roomData['longDescription'] ??
+        shortDescription;
     final roomImageUrl = widget.roomData['.'];
 
     // Responsive values
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
+    final screenHeight = MediaQuery
+        .of(context)
+        .size
+        .height;
     final isSmallScreen = screenWidth < 360;
     final isMediumScreen = screenWidth >= 360 && screenWidth < 600;
     final isLargeScreen = screenWidth >= 600;
 
     // Dynamic values based on screen size
-    final bannerHeight = isSmallScreen ? 200.0 : (isMediumScreen ? 220.0 : 240.0);
-    final expandedHeight = isSmallScreen ? 280.0 : (isMediumScreen ? 320.0 : 360.0);
+    final bannerHeight = isSmallScreen ? 200.0 : (isMediumScreen
+        ? 220.0
+        : 240.0);
+    final expandedHeight = isSmallScreen ? 280.0 : (isMediumScreen
+        ? 320.0
+        : 360.0);
     final titleFontSize = isSmallScreen ? 22.0 : (isMediumScreen ? 26.0 : 28.0);
     final descriptionFontSize = isSmallScreen ? 12.0 : 13.0;
     final buttonHeight = isSmallScreen ? 36.0 : 40.0;
@@ -885,7 +741,8 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
                   imageUrl: roomImageUrl,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(color: Colors.black),
-                  errorWidget: (context, url, error) => Container(color: Colors.black),
+                  errorWidget: (context, url, error) =>
+                      Container(color: Colors.black),
                 ),
               ),
 
@@ -961,12 +818,12 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
         // Stream builder to get the latest posts
         StreamBuilder<QuerySnapshot>(
           stream:
-              _firestore
-                  .collection('posts')
-                  .where('roomId', isEqualTo: widget.roomData['id'])
-                  .orderBy('createdAt', descending: true)
-                  .limit(2)
-                  .snapshots(),
+          _firestore
+              .collection('posts')
+              .where('roomId', isEqualTo: widget.roomData['roomId'] ?? widget.roomData['id'])
+              .orderBy('createdAt', descending: true)
+              .limit(2)
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -1026,413 +883,105 @@ class _FitnessHomeTabState extends State<FitnessHomeTab> {
 
             return Column(
               children:
-                  posts.map((doc) {
-                    final postId = doc.id;
-                    final roomId = widget.roomData['id'] as String? ?? '';
-                    final postData = doc.data() as Map<String, dynamic>;
-                    final isRepost = postData['isRepost'] == true;
+              posts.map((doc) {
+                final postId = doc.id;
+                final roomId = widget.roomData['id'] as String? ?? '';
+                final postData = doc.data() as Map<String, dynamic>;
+                final isRepost = postData['isRepost'] == true;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (isRepost)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 24,
-                                right: 24,
-                                bottom: 4,
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.green.withOpacity(0.2),
-                                          Colors.teal.withOpacity(0.2),
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    child: Icon(
-                                      Icons.repeat_rounded,
-                                      size: 16,
-                                      color: Colors.greenAccent.shade400,
-                                    ),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isRepost)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 24,
+                            right: 24,
+                            bottom: 4,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.green.withOpacity(0.2),
+                                      Colors.teal.withOpacity(0.2),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text.rich(
-                                      TextSpan(
-                                        children: [
-                                          TextSpan(
-                                            text:
-                                                postData['userData']?['name'] ??
-                                                'Usuario',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          TextSpan(
-                                            text: ' reposteó esta publicación',
-                                            style: TextStyle(
-                                              color: Colors.white.withOpacity(
-                                                0.7,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                          Container(
-                            margin: EdgeInsets.symmetric(
-                              horizontal: isRepost ? 12 : 16,
-                              vertical: 0,
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                                child: CommunityPost(
-                                  postId: postId,
-                                  roomId: roomId,
-                                  showFullContent: true,
-                                  onCommentAdded: () {},
-                                  onLikeRemoved: () {},
-                                  autoShowComments: false,
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                child: Icon(
+                                  Icons.repeat_rounded,
+                                  size: 16,
+                                  color: Colors.greenAccent.shade400,
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text:
+                                        postData['userData']?['name'] ??
+                                            'Usuario',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: ' reposteó esta publicación',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(
+                                            0.7,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      Container(
+                        margin: EdgeInsets.symmetric(
+                          horizontal: isRepost ? 12 : 16,
+                          vertical: 0,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                            child: CommunityPost(
+                              postId: postId,
+                              roomId: roomId,
+                              showFullContent: true,
+                              onCommentAdded: () {},
+                              onLikeRemoved: () {},
+                              autoShowComments: false,
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    );
-                  }).toList(),
+                    ],
+                  ),
+                );
+              }).toList(),
             );
           },
         ),
       ],
     );
-  }
-
-  Widget _buildCommunityPost({
-    required String username,
-    required String avatar,
-    required String timeAgo,
-    required String content,
-    required int likes,
-    required int comments,
-    required String postId,
-    List<String> imageUrls = const [],
-    bool isRepost = false,
-    Map<String, dynamic>? originalPostData,
-  }) {
-    final String roomId = widget.roomData['roomId'] ?? '';
-
-    return StreamBuilder<DocumentSnapshot>(
-      stream: _firestore.collection('posts').doc(postId).snapshots(),
-      builder: (context, snapshot) {
-        bool userLiked = false;
-        if (snapshot.hasData && snapshot.data != null) {
-          final postData = snapshot.data!.data() as Map<String, dynamic>?;
-          if (postData != null) {
-            final likedBy = List<String>.from(postData['likedBy'] ?? []);
-            userLiked = likedBy.contains(widget.userId);
-          }
-        }
-
-        return GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (context) => PostDetailPage(postId: postId, roomId: roomId),
-              ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isRepost)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 24,
-                      right: 24,
-                      bottom: 4,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.green.withOpacity(0.2),
-                                Colors.teal.withOpacity(0.2),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Icon(
-                            Icons.repeat_rounded,
-                            size: 16,
-                            color: Colors.greenAccent.shade400,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: username,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: ' reposteó esta publicación',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                Container(
-                  margin: EdgeInsets.symmetric(
-                    horizontal: isRepost ? 12 : 16,
-                    vertical: 0,
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundImage: CachedNetworkImageProvider(avatar),
-                            backgroundColor: Colors.grey[800],
-                            child:
-                                avatar.isEmpty || avatar.contains('ui-avatars')
-                                    ? const Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                    )
-                                    : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  username,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                Text(
-                                  'Hace $timeAgo',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.6),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.more_horiz,
-                            color: Colors.white.withOpacity(0.7),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        content,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                        ),
-                      ),
-
-                      // Images section
-                      if (imageUrls.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        imageUrls.length == 1
-                            ? _buildSingleImage(imageUrls.first, postId)
-                            : _buildMultipleImages(imageUrls, postId),
-                      ],
-
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          _buildInteractionButton(
-                            icon:
-                                userLiked
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                            label: likes.toString(),
-                            iconColor:
-                                userLiked
-                                    ? Colors.red
-                                    : Colors.white.withOpacity(0.7),
-                            onTap: () {
-                              _toggleLike(postId, userLiked);
-                            },
-                          ),
-                          const SizedBox(width: 24),
-                          _buildInteractionButton(
-                            icon: Icons.chat_bubble_outline,
-                            label: comments.toString(),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => PostDetailPage(
-                                        postId: postId,
-                                        roomId: roomId,
-                                      ),
-                                ),
-                              );
-                            },
-                          ),
-                          const Spacer(),
-                          _buildInteractionButton(
-                            icon: Icons.share_outlined,
-                            onTap: () => widget.navigateToSection('community'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // También actualiza el método _buildInteractionButton para manejar el color personalizado
-  Widget _buildInteractionButton({
-    required IconData icon,
-    String? label,
-    Color? iconColor,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: iconColor ?? Colors.white.withOpacity(0.7),
-            size: 20,
-          ),
-          if (label != null) const SizedBox(width: 4),
-          if (label != null)
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // Método para manejar el like/unlike
-  void _toggleLike(String postId, bool currentlyLiked) async {
-    if (_auth.currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes iniciar sesión para dar like')),
-      );
-      return;
-    }
-
-    final String currentUserId = widget.userId;
-    final DocumentReference postRef = _firestore
-        .collection('posts')
-        .doc(postId);
-    final String roomId = widget.roomData['roomId'] as String? ?? '';
-    try {
-      // Create reference to the like document
-      final likeRef = _firestore
-          .collection('likes')
-          .doc('${postId}_$currentUserId');
-
-      final likeDoc = await likeRef.get();
-
-      if (currentlyLiked) {
-        // Remove like
-        if (likeDoc.exists) {
-          await likeRef.delete();
-        }
-
-        // Update post counter
-        await postRef.update({
-          'likesCount': FieldValue.increment(-1),
-          'likedBy': FieldValue.arrayRemove([currentUserId]),
-        });
-      } else {
-        // Add like
-        await likeRef.set({
-          'postId': postId,
-          'userId': currentUserId,
-          'roomId': roomId,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-
-        // Update post counter
-        await postRef.update({
-          'likesCount': FieldValue.increment(1),
-          'likedBy': FieldValue.arrayUnion([currentUserId]),
-        });
-      }
-    } catch (e) {
-      print('Error toggling like: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Error al actualizar like')));
-    }
   }
 }
 

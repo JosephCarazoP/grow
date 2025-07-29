@@ -738,7 +738,11 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                                           builder:
                                               (context) => WorkoutDetailScreen(
                                                 workout: workout,
-                                                onStart: () {},
+                                                roomId:
+                                                    widget.roomData['id'] ?? '',
+                                                onStart: () {
+                                                  // Logic to start workout
+                                                },
                                               ),
                                         ),
                                       );
@@ -771,7 +775,10 @@ class _FitnessRoutinesTabState extends State<FitnessRoutinesTab> {
                                       builder:
                                           (context) => WorkoutDetailScreen(
                                             workout: workout,
-                                            onStart: () {},
+                                            roomId: widget.roomData['id'] ?? '',
+                                            onStart: () {
+                                              // Logic to start workout
+                                            },
                                           ),
                                     ),
                                   );

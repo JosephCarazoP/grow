@@ -211,7 +211,7 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
         final userQuery =
             await _firestore
                 .collection('posts')
-                .where('roomId', isEqualTo: widget.roomData['id'])
+                .where('roomId', isEqualTo: widget.roomData['roomId'])
                 .get();
 
         // Filtramos manualmente los resultados por el nombre de usuario
@@ -236,7 +236,7 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
         final contentQuery =
             await _firestore
                 .collection('posts')
-                .where('roomId', isEqualTo: widget.roomData['id'])
+                .where('roomId', isEqualTo: widget.roomData['roomId'])
                 .get();
 
         // Filtrar manualmente por contenido
@@ -258,7 +258,7 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
         final recentQuery =
             await _firestore
                 .collection('posts')
-                .where('roomId', isEqualTo: widget.roomData['id'])
+                .where('roomId', isEqualTo: widget.roomData['roomId'])
                 .orderBy('createdAt', descending: true)
                 .get();
 
@@ -294,28 +294,39 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
     setState(() {
       _isLoading = true;
       _postIds = [];
-      _postsData = []; // Añadimos esta lista para almacenar los datos completos
+      _postsData = [];
     });
 
     try {
       final String roomId = widget.roomData['roomId']?.toString() ?? '';
+      print('=== FITNESS COMMUNITY TAB DEBUG ===');
+      print('roomData keys: ${widget.roomData.keys.toList()}');
+      print('roomData[\'roomId\']: ${widget.roomData['roomId']}');
+      print('Using roomId: $roomId');
 
       if (roomId.isEmpty) {
+        print('ERROR: roomId is empty!');
         setState(() {
           _isLoading = false;
         });
         return;
       }
 
-      final QuerySnapshot postsSnapshot =
-          await _firestore
-              .collection('posts')
-              .where('roomId', isEqualTo: roomId)
-              .orderBy('createdAt', descending: true)
-              .limit(20)
-              .get();
+      final QuerySnapshot postsSnapshot = await _firestore
+          .collection('posts')
+          .where('roomId', isEqualTo: roomId)
+          .orderBy('createdAt', descending: true)
+          .limit(20)
+          .get();
 
-      print('Found ${postsSnapshot.docs.length} posts for roomId: $roomId');
+      print('Final query found ${postsSnapshot.docs.length} posts for roomId: $roomId');
+
+      // Log cada post encontrado
+      for (var doc in postsSnapshot.docs) {
+        print('Post found: ${doc.id}');
+        final data = doc.data() as Map<String, dynamic>;
+        print('Post data keys: ${data.keys.toList()}');
+      }
 
       final List<Map<String, dynamic>> loadedPosts = [];
       for (var doc in postsSnapshot.docs) {
@@ -333,12 +344,15 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
           });
 
           _postIds = loadedPosts.map((post) => post['id'] as String).toList();
-          _postsData = loadedPosts; // Guardamos los datos completos
+          _postsData = loadedPosts;
           _isLoading = false;
-          _lastVisible =
-              postsSnapshot.docs.isNotEmpty ? postsSnapshot.docs.last : null;
+          _hasMorePosts = postsSnapshot.docs.length >= 20;
+          _lastVisible = postsSnapshot.docs.isNotEmpty ? postsSnapshot.docs.last : null;
         });
       }
+
+      print('Final result: ${_postIds.length} posts loaded');
+      print('Post IDs: $_postIds');
     } catch (e) {
       print('Error loading posts: $e');
       if (mounted) {
@@ -350,7 +364,7 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
   }
 
   Future<void> _loadMorePosts() async {
-    if (_lastVisible == null) return;
+    if (_lastVisible == null || !_hasMorePosts) return;
 
     setState(() {
       _isLoadingMore = true;
@@ -359,30 +373,28 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
     try {
       Query query = _firestore
           .collection('posts')
-          .where('roomId', isEqualTo: widget.roomData['id']);
+          .where('roomId', isEqualTo: widget.roomData['roomId']) // Usar 'roomId'
+          .orderBy('createdAt', descending: true)
+          .startAfterDocument(_lastVisible!)
+          .limit(_postsPerPage);
 
-      if (_searchQuery.isNotEmpty && _filterType == 'contenido') {
-        query = _firestore
-            .collection('posts')
-            .where('roomId', isEqualTo: widget.roomData['id'])
-            .orderBy('content')
-            .startAt([_searchQuery])
-            .endAt([_searchQuery + '\uf8ff'])
-            .orderBy('createdAt', descending: true)
-            .startAfterDocument(_lastVisible!);
-      } else {
-        query = query
-            .orderBy('createdAt', descending: true)
-            .startAfterDocument(_lastVisible!);
-      }
+      final QuerySnapshot morePostsSnapshot = await query.get();
 
-      final querySnapshot = await query.limit(_postsPerPage).get();
+      if (morePostsSnapshot.docs.isNotEmpty) {
+        final List<Map<String, dynamic>> newPosts = [];
+        for (var doc in morePostsSnapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          newPosts.add({'id': doc.id, ...data});
+        }
 
-      if (querySnapshot.docs.isNotEmpty) {
-        setState(() {
-          _postIds.addAll(querySnapshot.docs.map((doc) => doc.id).toList());
-          _lastVisible = querySnapshot.docs.last;
-        });
+        if (mounted) {
+          setState(() {
+            _postIds.addAll(newPosts.map((post) => post['id'] as String));
+            _postsData.addAll(newPosts);
+            _lastVisible = morePostsSnapshot.docs.last;
+            _hasMorePosts = morePostsSnapshot.docs.length >= _postsPerPage;
+          });
+        }
       } else {
         setState(() {
           _hasMorePosts = false;
@@ -391,9 +403,11 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
     } catch (e) {
       print('Error loading more posts: $e');
     } finally {
-      setState(() {
-        _isLoadingMore = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
     }
   }
 
@@ -1442,17 +1456,6 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
       // Guardar directamente en la colección principal de posts
       final postRef = await _firestore.collection('posts').add(postData);
 
-      // NO hacer esta referencia adicional que causa el error de permisos
-      // await _firestore
-      //     .collection('rooms')
-      //     .doc(roomId)
-      //     .collection('posts')
-      //     .doc(postRef.id)
-      //     .set({
-      //   'postId': postRef.id,
-      //   'createdAt': FieldValue.serverTimestamp(),
-      // });
-
       // Cerrar diálogo de carga
       Navigator.of(context, rootNavigator: true).pop();
 
@@ -2019,6 +2022,8 @@ class _FitnessCommunityTabState extends State<FitnessCommunityTab> {
     );
   }
 // Helper method to show loading placeholder
+
+
   Widget _buildPostPlaceholder() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),

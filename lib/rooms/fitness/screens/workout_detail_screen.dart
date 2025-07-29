@@ -6,11 +6,13 @@ import '../models/workout.dart';
 class WorkoutDetailScreen extends StatefulWidget {
   final Workout workout;
   final Function() onStart;
+  final String roomId;
 
   const WorkoutDetailScreen({
     Key? key,
     required this.workout,
     required this.onStart,
+    required this.roomId,
   }) : super(key: key);
 
   @override
@@ -1116,8 +1118,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen>
               MaterialPageRoute(
                 builder:
                     (context) => WorkoutSessionScreen(
-                      workout: widget.workout,
-                      dayIndex: _selectedDay,
+                      workout: widget.workout, roomId: widget.roomId,
                     ),
               ),
             );

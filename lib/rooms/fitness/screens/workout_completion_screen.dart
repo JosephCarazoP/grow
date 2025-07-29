@@ -1,19 +1,32 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../services/workout_tracking_service.dart';
 import '../models/workout.dart';
 
 class WorkoutCompletionScreen extends StatefulWidget {
   final Workout workout;
   final String dayName;
   final Map<String, double?> weights;
+  final int dayNumber;
+  final int duration;
+  final int caloriesBurned;
+  final int score;
+  final String roomId;
 
   const WorkoutCompletionScreen({
     Key? key,
     required this.workout,
     required this.dayName,
     required this.weights,
+    required this.dayNumber,
+    required this.duration,
+    required this.caloriesBurned,
+    required this.score,
+    required this.roomId,
   }) : super(key: key);
 
   @override
@@ -85,25 +98,99 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     super.dispose();
   }
 
-  Future<void> _shareProgress() async {
-    setState(() => _isSharing = true);
+  Future<void> _shareProgressToRoom() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
 
-    // Simulate sharing
-    await Future.delayed(const Duration(seconds: 1));
+      // Obtener datos del usuario
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
 
-    if (mounted) {
-      setState(() => _isSharing = false);
+      final userData = userDoc.data() ?? {};
+
+      // Usar el roomId que viene desde el widget
+      String actualRoomId = widget.roomId;
+
+      // Debug para verificar el roomId
+      print('=== WORKOUT COMPLETION DEBUG ===');
+      print('widget.roomId: ${widget.roomId}');
+
+      // Si el roomId está vacío, obtenerlo de la sala fitness
+      if (actualRoomId.isEmpty) {
+        final roomSnapshot = await FirebaseFirestore.instance
+            .collection('rooms')
+            .where('type', isEqualTo: 'fitness')
+            .limit(1)
+            .get();
+
+        if (roomSnapshot.docs.isNotEmpty) {
+          actualRoomId = roomSnapshot.docs.first.id;
+          print('Found roomId from Firestore: $actualRoomId');
+        }
+      }
+
+      // Crear el contenido del post
+      String postContent = '¡Acabo de completar mi entrenamiento del día ${widget.dayNumber}! 💪\n\n';
+      postContent += '📊 Estadísticas:\n';
+      postContent += '⏱️ Duración: ${_formatDuration(widget.duration)}\n';
+      postContent += '🔥 Calorías quemadas: ${widget.caloriesBurned}\n';
+      postContent += '💯 Puntuación: ${widget.score} puntos\n\n';
+      postContent += '#FitnessGrowApp #Día${widget.dayNumber}Completado';
+
+      // Crear el post con el roomId correcto
+      await FirebaseFirestore.instance.collection('posts').add({
+        'content': postContent,
+        'userId': user.uid,
+        'roomId': actualRoomId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'likesCount': 0,
+        'commentsCount': 0,
+        'repostsCount': 0,
+        'likedBy': [],
+        'userData': userData,
+        'imageUrls': [],
+        'videoData': [],
+        'isRepost': false,
+        'isWorkoutCompletion': true,
+        'workoutData': {
+          'workoutId': widget.workout.id,
+          'workoutTitle': widget.workout.title,
+          'dayNumber': widget.dayNumber,
+          'duration': widget.duration,
+          'caloriesBurned': widget.caloriesBurned,
+          'score': widget.score,
+        }
+      });
+
+      // Mostrar confirmación
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Tu progreso ha sido compartido con la comunidad!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Navegar de vuelta cerrando todas las pantallas hasta el inicio
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
+    } catch (e) {
+      print('Error al compartir progreso: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('¡Progreso compartido en la sala!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          content: Text('Error al compartir: $e'),
+          backgroundColor: Colors.red,
         ),
       );
     }
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes}m ${remainingSeconds}s';
   }
 
   Future<void> _finishWorkout() async {
@@ -122,11 +209,18 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
       }
     });
 
+    // Marcar el día como completado
+    await WorkoutTrackingService.markDayAsCompleted(
+      widget.workout.id,
+      widget.dayName,
+    );
+
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
-      // Return to routines tab
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // Pop hasta llegar a la pantalla de rutinas
+      Navigator.of(context).pop(); // Cerrar WorkoutCompletionScreen
+      Navigator.of(context).pop(); // Cerrar WorkoutSessionScreen
     }
   }
 
@@ -249,50 +343,21 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                         const SizedBox(height: 48),
 
                         // Share button
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: _isSharing ? null : _shareProgress,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: BorderSide(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 2,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 16,
-                                horizontal: 24,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: _isSharing
-                                ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                                : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.share_outlined, size: 22),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Compartir avance en la sala',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      ElevatedButton(
+                        onPressed: _shareProgressToRoom,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
+                        child: const Text(
+                          'Compartir avance en la sala',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
 
                         const SizedBox(height: 24),
 
